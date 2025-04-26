@@ -2,7 +2,7 @@ function App() {
   return(
     <>
       <div>RetailEase</div>
-      <div>Pratik's Branch</div>
+      <div>Viraj's Branch</div>
     </>
   )
 }
