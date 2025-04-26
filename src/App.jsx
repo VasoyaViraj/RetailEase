@@ -1,8 +1,10 @@
+import { Button } from "@/components/ui/button"
+
 function App() {
   return(
     <>
-      <div>RetailEase</div>
-      <div>Viraj's Branch</div>
+      <div className="flex justify-center items-center">RetailEase</div>
+      <Button>Click me</Button>
     </>
   )
 }
