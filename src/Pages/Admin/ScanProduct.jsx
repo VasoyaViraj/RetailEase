@@ -142,7 +142,7 @@ function ScanProduct() {
                       hasScanned.current = true;
                       setScannedItem(result.text);
                       setOpenCamera(false)
-                      const data = search(List,scannedItem)
+                      const data = search(List, scannedItem)
                       setProductName(data[0]);
                       setPricePerKg(data[1])
                       setError("");
@@ -222,13 +222,15 @@ function ScanProduct() {
   );
 }
 
-function search(array, number){
-  let Array = [ ...array ]
-  Array.map((item) => {
-    if(item.barcodeNumber == number){
-      return [item.productName, item.price]
-    }
-  })
+function search(array, number) {
+  let Array = [...array];
+  let foundItem = Array.find(item => item.barcodeNumber == number);
+  
+  if (foundItem) {
+    return [foundItem.productName, foundItem.price];
+  } else {
+    return ["",""]
+  }
 }
 
 export default ScanProduct;
