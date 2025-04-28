@@ -118,3 +118,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .h-screen-48 {
+    height: calc(100vh - 48px);
+  }
+
+  .tbor {
+    border: 2px solid red;
+    box-sizing: border-box;
+  }
+  
+  .flexbox{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+}

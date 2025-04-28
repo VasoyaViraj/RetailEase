@@ -12,8 +12,10 @@ const BillingPage = () => {
   }, []);
 
   return (
-    <div>
-      <Navbarr/>
+    <div className='h-screen-48 tbor flexbox'>
+      <div className='min-h-136 tbor min-w-84 flexbox'>
+        Hy
+      </div>
     </div>
   )
 }
