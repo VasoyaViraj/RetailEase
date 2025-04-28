@@ -12,11 +12,16 @@ const BillingPage = () => {
   }, []);
 
   return (
-    <div className='h-screen-48 tbor flexbox'>
-      <div className='min-h-136 tbor min-w-84 flexbox'>
-        Hy
+    // <div className='h-screen-48 tbor flexbox'>
+    //   <div className='min-h-136 tbor min-w-84 flexbox'>
+    //     Hy
+    //   </div>
+    // </div>
+    <>
+      <div>
+        BillingPage
       </div>
-    </div>
+    </>
   )
 }
 

@@ -17,17 +17,17 @@ const Navbarr = () => {
                 </SheetTrigger>
                 <SheetContent side="left">
                 <div className="grid gap-2 py-6">
-                    <Link href="#" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>   
-                    Home
+                    <Link to="/" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>   
+                      Home
                     </Link>
-                    <Link href="#" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
-                    About
+                    <Link to="admin/scanproduct" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
+                      ScanProduct
                     </Link>
-                    <Link href="#" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
-                    Services
+                    <Link to="admin/addproduct" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
+                      AddProduct
                     </Link>
-                    <Link href="#" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
-                    Contact
+                    <Link to="admin/productlist" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
+                      ProductList
                     </Link>
                 </div>
                 </SheetContent>
@@ -39,6 +39,7 @@ const Navbarr = () => {
             <span className='ml-3 font-bold'>RetailEase</span>
             <nav className="ml-auto hidden lg:flex gap-6">
                 <Link
+                to="/"
                 href="#"
                 className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
                 prefetch={false}
@@ -46,25 +47,28 @@ const Navbarr = () => {
                 Home
                 </Link>
                 <Link
+                to="admin/scanproduct"
                 href="#"
                 className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
                 prefetch={false}
                 >
-                About
+                ScanProduct
                 </Link>
                 <Link
+                to="admin/addproduct"
                 href="#"
                 className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
                 prefetch={false}
                 >
-                Services
+                AddProduct
                 </Link>
                 <Link
+                to="admin/productlist"
                 href="#"
                 className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
                 prefetch={false}
                 >
-                Contact
+                ProductList
                 </Link>
             </nav>
             </header>
