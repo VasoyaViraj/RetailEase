@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
+import { databases, ID } from "@/services/appwriteConfig.js";
 
 function ScanProduct() {
 
@@ -14,40 +15,12 @@ function ScanProduct() {
     };
   }, []);
 
-  //temporary
-  const List = [
-    {
-      "productName" : "Parle G",
-      "barcodeNumber" : "1234561",
-      "price" :  20,
-    },
-    {
-      "productName" : "Condom",
-      "barcodeNumber" : "1234562",
-      "price" :  50,
-    },
-    {
-      "productName" : "Balaji wafer",
-      "barcodeNumber" : "1234563",
-      "price" :  40,
-    },
-    {
-      "productName" : "Waffle",
-      "barcodeNumber" : "1234564",
-      "price" :  200,
-    },
-    {
-      "productName" : "Tomato",
-      "barcodeNumber" : "1234565",
-      "price" :  22,
-    },
-  ]
-
+  const [allProducts, setAllProducts] = useState([])
   const [scannedItem, setScannedItem] = useState("");
   const [productName, setProductName] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [name, setName] = useState("");
-  const [pricePerKg, setPricePerKg] = useState("");
+  const [pricePerKg, setPricePerKg] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [openCamera, setOpenCamera] = useState(false);
   const [error, setError] = useState("");
@@ -62,15 +35,34 @@ function ScanProduct() {
     setCalculatedPrice(qty * price);
   };
 
-  const handleSendToDatabase = () => {
+  const handleSendToDatabase = async () => {
     const data = {
-      item: scannedItem,
       productName,
-      quantity,
-      pricePerKg,
-      totalPrice: calculatedPrice,
+      'quantity' : parseInt(quantity),
+      'price' : parseInt(pricePerKg)
     };
     console.log("Sending to database:", data);
+    
+    try{
+      const res = await databases.createDocument(
+        '6810918b0009c28b3b9d',
+        '681096fb001bb46392c0',
+        'unique()',
+        data
+      )
+      console.log(res)
+      if(res){
+        setScannedItem('')
+        setProductName('')
+        setPricePerKg('')
+        setQuantity(1)
+        setCalculatedPrice(0)
+        setOpenCamera(true)
+      }
+    }catch(e){
+      console.log(e)
+      setError(e)
+    }
   };
 
   const handleZoomIn = () => {
@@ -117,11 +109,29 @@ function ScanProduct() {
     }
   }, [openCamera]);
 
+  useEffect(() => {
+    async function fetchAllProducts(){
+      const response = await databases.listDocuments(
+        '6810918b0009c28b3b9d',
+        '6810919e003221b85c31'
+      )
+      setAllProducts(response.documents)
+      console.log(response.documents)
+    }
+    fetchAllProducts()
+  },[])
+
+  useEffect(() => {
+    const data = search(allProducts, scannedItem)
+    setProductName(data[0])
+    setPricePerKg(data[1])
+  },[scannedItem])
+
   return (
     <div className="flex h-screen-48 items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">📦 Scan & Add Product</CardTitle>
+          <CardTitle className="text-2xl text-center">📦 Scan Product</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -142,7 +152,7 @@ function ScanProduct() {
                       hasScanned.current = true;
                       setScannedItem(result.text);
                       setOpenCamera(false);
-                      const data = search(List, result.text);
+                      const data = search(allProducts, result.text);
                       setProductName(data[0]);
                       setPricePerKg(data[1]);
                       setError("");
