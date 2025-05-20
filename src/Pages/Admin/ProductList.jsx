@@ -1,5 +1,4 @@
-import {useEffect, useState} from 'react'
-import { databases } from '@/services/appwriteConfig';
+import {useContext, useEffect, useState} from 'react'
 import {
   Table,
   TableBody,
@@ -14,6 +13,7 @@ import {ComboboxDemo} from '@/components/combobox'
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { allProductsContext } from '@/contexts/allProductsContext';
 
 const ProductList = () => {
 
@@ -24,20 +24,7 @@ const ProductList = () => {
     };
   }, []);
 
-  let [data, setData] = useState([])
-  useEffect(() => {
-    async function fetchAllProducts(){
-      const response = await databases.listDocuments(
-        '6810918b0009c28b3b9d',
-        '6810919e003221b85c31'
-      )
-      setData(response.documents)
-      console.log(response.documents)
-    }
-    fetchAllProducts()
-  },[])
-
-  const totalPrice = data.reduce((sum, item) => sum + Number(item.price), 0);
+  const {data} = useContext(allProductsContext)
 
   return (
 

@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
-import { databases, ID } from "@/services/appwriteConfig.js";
+import { databases} from "@/services/appwriteConfig.js";
+import { allProductsContext } from "@/contexts/allProductsContext";
 
 function ScanProduct() {
+
+  let {data} = useContext(allProductsContext)
 
   useEffect(() => {
     document.title = 'Scan Product';
@@ -15,7 +18,6 @@ function ScanProduct() {
     };
   }, []);
 
-  const [allProducts, setAllProducts] = useState([])
   const [scannedItem, setScannedItem] = useState("");
   const [productName, setProductName] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -110,21 +112,9 @@ function ScanProduct() {
   }, [openCamera]);
 
   useEffect(() => {
-    async function fetchAllProducts(){
-      const response = await databases.listDocuments(
-        '6810918b0009c28b3b9d',
-        '6810919e003221b85c31'
-      )
-      setAllProducts(response.documents)
-      console.log(response.documents)
-    }
-    fetchAllProducts()
-  },[])
-
-  useEffect(() => {
-    const data = search(allProducts, scannedItem)
-    setProductName(data[0])
-    setPricePerKg(data[1])
+    const dataa = search(data, scannedItem)
+    setProductName(dataa[0])
+    setPricePerKg(dataa[1])
   },[scannedItem])
 
   return (
@@ -152,9 +142,9 @@ function ScanProduct() {
                       hasScanned.current = true;
                       setScannedItem(result.text);
                       setOpenCamera(false);
-                      const data = search(allProducts, result.text);
-                      setProductName(data[0]);
-                      setPricePerKg(data[1]);
+                      const dataa = search(data, result.text);
+                      setProductName(dataa[0]);
+                      setPricePerKg(dataa[1]);
                       setError("");
                     }
                   }}
