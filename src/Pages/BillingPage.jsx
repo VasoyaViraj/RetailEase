@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { allProductsContext } from "@/contexts/allProductsContext"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 
 export default function BillingPage() {
 
@@ -21,6 +23,9 @@ export default function BillingPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [billItems, setBillItems] = useState([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
+
+  let [cusName, setCusName] = useState('')
+  let [cusMobNum, setCusMobNum] = useState(null)
 
   const searchInputRef = useRef(null)
 
@@ -119,11 +124,66 @@ export default function BillingPage() {
 
   const totalBill = billItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    }).format(amount)
+    // return `${parseFloat(amount).toFixed(2)}`
+  }
+
+  const generatePDF = () => {
+    const doc = new jsPDF()
+
+    doc.setFontSize(30)
+    doc.text('INVOICE', 20,20)
+
+    doc.setFontSize(13)
+    doc.text('ISSUED TO:', 20,41)
+    doc.text(cusName, 20,50)
+    doc.text(cusMobNum, 20,57)
+
+    doc.text('Invoice no. : 01238',150 ,41)
+    doc.text('Date : '+new Date().toLocaleDateString(),150 ,48)
+
+    const tableColumn = ["Product", "Unit Price", "Quantity", "Subtotal"]
+    const tableRows = billItems.map((product) => [
+    product.productName,
+    formatCurrency(product.price),
+    product.quantity,
+    formatCurrency(product.price*product.quantity),
+    ])
+
+    autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 80,
+        margin : 20,
+        theme: "striped",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [66, 66, 66] },
+    })
+
+    const finalY = (doc).lastAutoTable.finalY || 120
+    doc.text("Total:", 137, finalY + 10)
+    const totalWidth = doc.getTextWidth("Total:")
+    doc.text(formatCurrency(totalBill), totalWidth+139, finalY + 10)
+
+    doc.setFontSize(12)
+    doc.text("Thank you for shopping !", 105, finalY + 25, { align: "center" })
+    
+    doc.setFontSize(10)
+    doc.text("Developed by Apexion Tech Solution", 142,287)
+    doc.text("Contact us : 7016960514", 142,292)
+
+    doc.save("invoice.pdf")
+}
+
   return (
     <div className="w-full mx-auto p-4 h-screen-48">  
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Product Search Section */}
-        <Card className="flex-1 min-w-0">
+        <Card className="flex-1 min-w-0 bg-white/75">
           <CardHeader className="pb-2">
             <CardTitle>Product Search</CardTitle>
           </CardHeader>
@@ -165,7 +225,7 @@ export default function BillingPage() {
                       >
                         <TableCell className="font-medium py-1.5">{product.productName}</TableCell>
                         {/* <TableCell className="py-1.5">{product.category}</TableCell> */}
-                        <TableCell className="text-right py-1.5">${product.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right py-1.5">₹{product.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right py-1.5">{product.barcodeNumber}</TableCell>
                       </TableRow>
                     ))
@@ -184,9 +244,16 @@ export default function BillingPage() {
         </Card>
 
         {/* Bill Section */}
-        <Card className="flex-1 min-w-0">
-          <CardHeader className="pb-2">
-            <CardTitle>Bill</CardTitle>
+        <Card className="flex-1 min-w-0 bg-white/75">
+          <CardHeader className="flex justify-between items-center">
+            <CardTitle className='flex-2 flex gap-1 flex-col'>
+              <Input className='w-3/4' placeholder='Customer Name' onChange={(e) => setCusName(e.target.value)} />
+              <Input className='w-3/4' placeholder='Customer Mobile Number' onChange={(e) => setCusMobNum(e.target.value)} />
+            </CardTitle>
+            <div className="flex justify-center items-center flex-col gap-1">
+              <Button className='w-full' >Whatsapp</Button>
+              <Button className='w-full' onClick={generatePDF}>Generate PDF</Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="border rounded-md overflow-auto max-h-[calc(100vh-250px)]">
@@ -239,8 +306,8 @@ export default function BillingPage() {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right py-1.5">${item.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right py-1.5">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                        <TableCell className="text-right py-1.5">₹{item.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right py-1.5">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
                         <TableCell className="py-1.5">
                           <Button
                             variant="ghost"
@@ -271,7 +338,7 @@ export default function BillingPage() {
               <div className="mt-4 border-t pt-4">
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Total:</span>
-                  <span className="font-bold text-xl">${totalBill.toFixed(2)}</span>
+                  <span className="font-bold text-xl">₹{totalBill.toFixed(2)}</span>
                 </div>
               </div>
             )}
