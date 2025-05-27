@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useContext } from "react"
-import { Search, Trash2, Plus, Minus } from "lucide-react"
+import { Search, Trash2, Plus, Minus, Barcode, Camera, CameraOff } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { allProductsContext } from "@/contexts/allProductsContext"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import BarcodeScannerComponent from "react-qr-barcode-scanner"
 
 export default function BillingPage() {
 
@@ -28,6 +29,24 @@ export default function BillingPage() {
   let [cusMobNum, setCusMobNum] = useState(null)
 
   const searchInputRef = useRef(null)
+
+  const [isScanning, setIsScanning] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [cameraError, setCameraError] = useState(null)
+  const [zoom, setZoom] = useState(5)
+  const hasScanned = useRef(false)
+  const scanTimeout = useRef(null)
+  const videoRef = useRef(null)
+
+  // Add search function
+  const searchProduct = (array, barcode) => {
+    const foundItem = array.find(item => item.barcodeNumber == barcode)
+    if (foundItem) {
+      return [foundItem.productName, foundItem.price]
+    } else {
+      return ["", ""]
+    }
+  }
 
   const filteredProducts = products.filter(
     (product) =>
@@ -177,7 +196,103 @@ export default function BillingPage() {
     doc.text("Contact us : 7016960514", 142,292)
 
     doc.save("invoice.pdf")
+    return doc
 }
+
+  const handleWhatsAppShare = () => {
+    if (!cusMobNum) {
+      alert("Please enter customer's mobile number")
+      return
+    }
+
+    const doc = generatePDF()
+    const pdfBlob = doc.output('blob')
+    const pdfUrl = URL.createObjectURL(pdfBlob)
+    
+    // Format the message
+    const message = `Hello ${cusName || 'Valued Customer'},\n\nThank you for your purchase. Please find your invoice attached.\n\nTotal Amount: ${formatCurrency(totalBill)}\n\nBest regards,\nRetailEase`
+    
+    // Create WhatsApp app URL
+    const whatsappUrl = `whatsapp://send?phone=${cusMobNum}&text=${encodeURIComponent(message)}`
+    
+    // Open WhatsApp app
+    window.location.href = whatsappUrl
+  }
+
+  const handleZoomIn = () => {
+    setZoom((prev) => {
+      const newZoom = Math.min(prev + 0.5, 5)
+      applyCameraSettings(newZoom)
+      return newZoom
+    })
+  }
+
+  const handleZoomOut = () => {
+    setZoom((prev) => {
+      const newZoom = Math.max(prev - 0.5, 1)
+      applyCameraSettings(newZoom)
+      return newZoom
+    })
+  }
+
+  const applyCameraSettings = (newZoom) => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const [track] = videoRef.current.srcObject.getVideoTracks()
+      if (track && track.getCapabilities) {
+        const capabilities = track.getCapabilities()
+        const constraints = {}
+        if (capabilities.zoom) {
+          Object.assign(constraints, { advanced: [{ zoom: newZoom }] })
+        }
+        track.applyConstraints(constraints).catch((e) => console.error("Error applying constraints", e))
+      }
+    }
+  }
+
+  // Function to handle successful scan
+  const handleSuccessfulScan = (scannedProduct) => {
+    addToBill(scannedProduct)
+    setCameraError("Product added successfully!")
+    setIsScanning(false) // Close scanner immediately
+    hasScanned.current = false
+  }
+
+  // Clean up timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      if (scanTimeout.current) {
+        clearTimeout(scanTimeout.current)
+      }
+    }
+  }, [])
+
+  const openScanner = () => {
+    setIsScanning(true)
+    setCameraError(null)
+    hasScanned.current = false
+  }
+
+  const closeScanner = () => {
+    setIsScanning(false)
+    setCameraError(null)
+    hasScanned.current = false
+    if (scanTimeout.current) {
+      clearTimeout(scanTimeout.current)
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject
+      const tracks = stream.getTracks()
+      tracks.forEach(track => track.stop())
+      videoRef.current.srcObject = null
+    }
+  }
+
+  // Clean up when component unmounts
+  useEffect(() => {
+    return () => {
+      closeScanner()
+    }
+  }, [])
 
   return (
     <div className="w-full mx-auto p-4 h-screen-48">  
@@ -188,17 +303,102 @@ export default function BillingPage() {
             <CardTitle>Product Search</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search products by name or category..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                ref={searchInputRef}
-              />
+            <div className="relative flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search products by name or category..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  ref={searchInputRef}
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={isScanning ? closeScanner : openScanner}
+                className="shrink-0"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : isScanning ? (
+                  <CameraOff className="h-4 w-4" />
+                ) : (
+                  <Barcode className="h-4 w-4" />
+                )}
+              </Button>
             </div>
+
+            {isScanning && (
+              <div className="relative border rounded-md overflow-hidden bg-black">
+                <div className="relative">
+                  <BarcodeScannerComponent
+                    width="100%"
+                    height={150}
+                    onUpdate={(err, result) => {
+                      if (result && !hasScanned.current) {
+                        hasScanned.current = true
+                        const scannedProduct = products.find(p => p.barcodeNumber === result.text)
+                        if (scannedProduct) {
+                          handleSuccessfulScan(scannedProduct)
+                        } else {
+                          setCameraError("Product not found")
+                          setTimeout(() => {
+                            hasScanned.current = false
+                          }, 1000)
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-1">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleZoomIn}
+                    className="h-6 px-2 bg-white/20 hover:bg-white/30"
+                  >
+                    ➕
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleZoomOut}
+                    className="h-6 px-2 bg-white/20 hover:bg-white/30"
+                  >
+                    ➖
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={closeScanner}
+                    className="h-6 px-2 bg-red-500 hover:bg-red-600"
+                  >
+                    Close
+                  </Button>
+                </div>
+                <div className="absolute top-1 left-1 text-white text-xs bg-black/50 px-1.5 py-0.5 rounded">
+                  Scan
+                </div>
+                <div className="absolute top-1 right-1 text-white text-xs bg-black/50 px-1.5 py-0.5 rounded">
+                  {zoom.toFixed(1)}x
+                </div>
+              </div>
+            )}
+
+            {cameraError && (
+              <div className={`text-center text-xs p-1 rounded ${
+                cameraError.includes("successfully") 
+                  ? "text-green-500 bg-green-50" 
+                  : "text-red-500 bg-red-50"
+              }`}>
+                {cameraError}
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground">
               Press F1 to focus search. Use ↑/↓ to navigate results and Enter to add to bill.
             </p>
@@ -251,7 +451,7 @@ export default function BillingPage() {
               <Input className='w-3/4' placeholder='Customer Mobile Number' onChange={(e) => setCusMobNum(e.target.value)} />
             </CardTitle>
             <div className="flex justify-center items-center flex-col gap-1">
-              <Button className='w-full' >Whatsapp</Button>
+              <Button className='w-full' onClick={handleWhatsAppShare}>Whatsapp</Button>
               <Button className='w-full' onClick={generatePDF}>Generate PDF</Button>
             </div>
           </CardHeader>
