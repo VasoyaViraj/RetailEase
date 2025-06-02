@@ -42,7 +42,8 @@ export default function BillingPage() {
 
   const filteredProducts = products.filter(
     (product) =>
-      product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
+      product.barcodeNumber.toString().includes(searchTerm.trim()),
   )
 
   useEffect(() => {
