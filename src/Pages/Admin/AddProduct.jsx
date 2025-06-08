@@ -25,7 +25,8 @@ const AddProduct = () => {
   let [productData, setProductData] = useState({
     "productName" : "",
     "barcodeNumber" : null,
-    "price" : null
+    "price" : null,
+    "stock" : null
   })
 
   const handleClick = () => {
@@ -128,6 +129,19 @@ const AddProduct = () => {
                     inputMode="numeric"
                     value={productData.barcodeNumber}
                     onChange={(e) => setProductData({...productData, "barcodeNumber" : parseInt(e.target.value)})}
+                  />
+              </div>
+              <div className="grid gap-2">
+                  <Label htmlFor="stock">Total Stocks</Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    placeholder="Enter total Stocks in store"
+                    inputMode="numeric"
+                    min="0"
+                    value={productData.stock}
+                    onChange={(e) => setProductData({...productData, "stock" : parseInt(e.target.value) || 0})}
+                    required
                   />
               </div>
             </div>

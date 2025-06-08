@@ -9,6 +9,7 @@ import { allProductsContext } from "@/contexts/allProductsContext"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import BarcodeScannerComponent from "react-qr-barcode-scanner"
+import { databases } from "@/services/appwriteConfig"
 
 export default function BillingPage() {
 
@@ -20,11 +21,12 @@ export default function BillingPage() {
     };
   }, []);
 
-  const {data: products} = useContext(allProductsContext)
+  const {data: products, setData: setProducts} = useContext(allProductsContext)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [billItems, setBillItems] = useState([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [stockError, setStockError] = useState("")
 
   let [cusName, setCusName] = useState('')
   let [cusMobNum, setCusMobNum] = useState(null)
@@ -140,11 +142,23 @@ export default function BillingPage() {
 
   // Add product to bill
   const addToBill = (product) => {
-    setBillItems((prevItems) => {
+    // Check if product is in stock
+    if (product.stock <= 0) {
+      setStockError(`Sorry, ${product.productName} is out of stock`)
+      setTimeout(() => setStockError(""), 3000)
+      return
+    }
 
+    setBillItems((prevItems) => {
       const existingItemIndex = prevItems.findIndex((item) => item.$id === product.$id)
 
       if (existingItemIndex >= 0) {
+        // Check if adding one more would exceed stock
+        if (prevItems[existingItemIndex].quantity >= product.stock) {
+          setStockError(`Only ${product.stock} units of ${product.productName} available`)
+          setTimeout(() => setStockError(""), 3000)
+          return prevItems
+        }
 
         const updatedItems = [...prevItems]
         updatedItems[existingItemIndex] = {
@@ -153,7 +167,6 @@ export default function BillingPage() {
         }
         return updatedItems
       } else {
-
         return [
           ...prevItems,
           {
@@ -161,6 +174,7 @@ export default function BillingPage() {
             productName: product.productName,
             price: product.price,
             quantity: 1,
+            stock: product.stock // Keep track of available stock
           },
         ]
       }
@@ -173,13 +187,19 @@ export default function BillingPage() {
       return
     }
 
+    // Find the product to check stock
+    const product = products.find(p => p.$id === $id)
+    if (product && newQuantity > product.stock) {
+      setStockError(`Only ${product.stock} units of ${product.productName} available`)
+      setTimeout(() => setStockError(""), 3000)
+      return
+    }
+
     setBillItems((prevItems) => prevItems.map((item) => (item.$id === $id ? { ...item, quantity: newQuantity } : item)))
   }
 
   const handleQuantityChange = ($id, value) => {
-
     const numValue = Number.parseFloat(value)
-
     if (!isNaN(numValue)) {
       updateQuantity($id, numValue)
     }
@@ -199,52 +219,188 @@ export default function BillingPage() {
     // return `${parseFloat(amount).toFixed(2)}`
   }
 
-  const generatePDF = () => {
-    const doc = new jsPDF()
+  const generatePDF = async () => {
+    try {
+      // Validate bill items
+      if (billItems.length === 0) {
+        setStockError("Please add items to the bill")
+        setTimeout(() => setStockError(""), 3000)
+        return
+      }
 
-    doc.setFontSize(30)
-    doc.text('INVOICE', 20,20)
+      // Validate customer details
+      if (!cusName || !cusMobNum) {
+        setStockError("Please enter customer details")
+        setTimeout(() => setStockError(""), 3000)
+        return
+      }
 
-    doc.setFontSize(13)
-    doc.text('ISSUED TO:', 20,41)
-    doc.text(cusName, 20,50)
-    doc.text(cusMobNum, 20,57)
+      // Update stock in database
+      try {
+        for (const item of billItems) {
+          const product = products.find(p => p.$id === item.$id)
+          if (!product) {
+            throw new Error(`Product not found: ${item.productName}`)
+          }
 
-    doc.text('Invoice no. : 01238',150 ,41)
-    doc.text('Date : '+new Date().toLocaleDateString(),150 ,48)
+          const newStock = product.stock - item.quantity
+          if (newStock < 0) {
+            throw new Error(`Insufficient stock for ${product.productName}`)
+          }
 
-    const tableColumn = ["Product", "Unit Price", "Quantity", "Subtotal"]
-    const tableRows = billItems.map((product) => [
-    product.productName,
-    formatCurrency(product.price),
-    product.quantity,
-    formatCurrency(product.price*product.quantity),
-    ])
+          await databases.updateDocument(
+            '6810918b0009c28b3b9d',
+            '6810919e003221b85c31',
+            product.$id,
+            {
+              stock: newStock
+            }
+          )
+        }
 
-    autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 80,
-        margin : 20,
-        theme: "striped",
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [66, 66, 66] },
-    })
+        // Update local state
+        setProducts(prevProducts => 
+          prevProducts.map(product => {
+            const billItem = billItems.find(item => item.$id === product.$id)
+            if (billItem) {
+              return {
+                ...product,
+                stock: product.stock - billItem.quantity
+              }
+            }
+            return product
+          })
+        )
 
-    const finalY = (doc).lastAutoTable.finalY || 120
-    doc.text("Total:", 137, finalY + 10)
-    const totalWidth = doc.getTextWidth("Total:")
-    doc.text(formatCurrency(totalBill), totalWidth+139, finalY + 10)
+        // Generate PDF
+        const doc = new jsPDF()
+        
+        // Header
+        doc.setFontSize(24)
+        doc.text('RetailEase', 20, 20)
+        doc.setFontSize(20)
+        doc.text('INVOICE', 20, 35)
 
-    doc.setFontSize(12)
-    doc.text("Thank you for shopping !", 105, finalY + 25, { align: "center" })
+        // Customer Details
+        doc.setFontSize(12)
+        doc.text('Bill To:', 20, 65)
+        doc.setFontSize(11)
+        doc.text(`Name: ${cusName}`, 20, 72)
+        doc.text(`Phone: ${cusMobNum}`, 20, 78)
+
+        // Invoice Details
+        doc.setFontSize(12)
+        doc.text('Invoice Details:', 120, 65)
+        doc.setFontSize(11)
+        const invoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+        doc.text(`Invoice No: ${invoiceNumber}`, 120, 72)
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, 120, 78)
+
+        // Table Header
+        const tableColumn = ["Product", "Unit Price", "Quantity", "Subtotal"]
+        const tableRows = billItems.map((product) => [
+          product.productName,
+          formatCurrency(product.price),
+          product.quantity,
+          formatCurrency(product.price * product.quantity),
+        ])
+
+        // Add total row
+        tableRows.push(['', '', 'Total:', formatCurrency(totalBill)])
+
+        // Generate table
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 95,
+          margin: { left: 20, right: 20 },
+          theme: 'grid',
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [66, 66, 66] }
+        })
+
+        // Convert PDF to base64
+        const pdfData = doc.output('datauristring')
+
+        // Open PDF in new window
+        const printWindow = window.open('', '_blank')
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Invoice ${invoiceNumber}</title>
+              <style>
+                body, html {
+                  margin: 0;
+                  padding: 0;
+                  height: 100%;
+                  overflow: hidden;
+                }
+                iframe {
+                  width: 100%;
+                  height: 100vh;
+                  border: none;
+                }
+              </style>
+            </head>
+            <body>
+              <iframe src="${pdfData}"></iframe>
+            </body>
+          </html>
+        `)
+        printWindow.document.close()
+
+        // Clear bill and customer info
+        setBillItems([])
+        setCusName('')
+        setCusMobNum(null)
+        setSearchTerm('')
+
+        // Show success message
+      } catch (error) {
+        console.error('Error:', error)
+        setStockError(error.message)
+        setTimeout(() => setStockError(""), 3000)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error generating bill. Please try again.')
+    }
+  }
+
+  const sendWhatsApp = () => {
+    if (!cusMobNum) {
+      setStockError("Please enter customer's mobile number")
+      setTimeout(() => setStockError(""), 3000)
+      return
+    }
+
+    if (billItems.length === 0) {
+      setStockError("Please add items to the bill")
+      setTimeout(() => setStockError(""), 3000)
+      return
+    }
+
+    // Format the bill message
+    const billMessage = `*RetailEase - Bill*\n\n` +
+      `*Customer:* ${cusName || 'N/A'}\n` +
+      `*Date:* ${new Date().toLocaleDateString()}\n\n` +
+      `*Items:*\n` +
+      billItems.map(item => 
+        `• ${item.productName}\n` +
+        `  Qty: ${item.quantity} × ₹${item.price.toFixed(2)} = ₹${(item.quantity * item.price).toFixed(2)}`
+      ).join('\n\n') +
+      `\n\n*Total Amount:* ₹${totalBill.toFixed(2)}\n\n` +
+      `Thank you for shopping with us!`
+
+    // Format the phone number (remove any spaces or special characters)
+    const phoneNumber = cusMobNum.replace(/[^0-9]/g, '')
     
-    doc.setFontSize(10)
-    doc.text("Developed by Apexion Tech Solution", 142,287)
-    doc.text("Contact us : 7016960514", 142,292)
-
-    doc.save("invoice.pdf")
-}
+    // Create WhatsApp URL with the message
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(billMessage)}`
+    
+    // Open WhatsApp in a new tab
+    window.open(whatsappUrl, '_blank')
+  }
 
   const handleScannerResult = (err, result) => {
     if (result && !hasScanned.current) {
@@ -285,22 +441,129 @@ export default function BillingPage() {
     resetScannerState();
   };
 
+  // Update the product card to show stock status
+  const renderProductCard = (product, index) => (
+    <div
+      key={product.$id}
+      className={`cursor-pointer rounded-lg border transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${
+        index === selectedIndex 
+          ? "bg-white border-gray-200 hover:border-blue-200 hover:shadow-sm" 
+          : "bg-white border-gray-200 hover:border-blue-200 hover:shadow-md"
+      }`}
+      onClick={() => addToBill(product)}
+    >
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex-1">
+            <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+              {product.productName}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                #{product.barcodeNumber}
+              </span>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                product.stock > 10 
+                  ? 'bg-green-100 text-green-600' 
+                  : product.stock > 0 
+                    ? 'bg-yellow-100 text-yellow-600' 
+                    : 'bg-red-100 text-red-600'
+              }`}>
+                {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2 mb-3">
+          {product.description && (
+            <p className="text-sm text-gray-500 line-clamp-2">
+              {product.description}
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <div className="flex flex-col">
+            <span className="text-lg font-semibold text-blue-600 group-hover:text-blue-700 transition-colors duration-200">
+              ₹{product.price.toFixed(2)}
+            </span>
+            {product.mrp && product.mrp > product.price && (
+              <span className="text-xs text-gray-400 line-through">
+                MRP: ₹{product.mrp.toFixed(2)}
+              </span>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200 ease-in-out transform hover:scale-105"
+          >
+            ➕
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Update the quantity input in the bill table
+  const renderQuantityInput = (item) => (
+    <div className="flex items-center justify-center space-x-2">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-8 w-8 border-gray-200 hover:bg-gray-50 transition-all duration-200 ease-in-out transform hover:scale-110"
+        onClick={(e) => {
+          e.stopPropagation()
+          updateQuantity(item.$id, item.quantity - 1)
+        }}
+      >
+        <Minus className="h-4 w-4 text-gray-600" />
+      </Button>
+      <Input
+        type="number"
+        value={item.quantity}
+        onChange={(e) => handleQuantityChange(item.$id, e.target.value)}
+        className="w-16 text-center px-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200"
+        step="1"
+        min="1"
+        max={item.stock}
+      />
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-8 w-8 border-gray-200 hover:bg-gray-50 transition-all duration-200 ease-in-out transform hover:scale-110"
+        onClick={(e) => {
+          e.stopPropagation()
+          updateQuantity(item.$id, item.quantity + 1)
+        }}
+      >
+        <Plus className="h-4 w-4 text-gray-600" />
+      </Button>
+    </div>
+  )
+
   return (
-    <div className="w-full mx-auto p-4 h-screen-48">  
+    <div className="w-full mx-auto p-4 h-screen-48 bg-gray-50">  
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Product Search Section */}
-        <Card className="flex-1 min-w-0 bg-white/75">
-          <CardHeader className="pb-2">
-            <CardTitle>Product Search</CardTitle>
+        <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="text-xl font-semibold text-gray-800">Product Search</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 pt-4">
+            {stockError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm">
+                {stockError}
+              </div>
+            )}
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   type="search"
                   placeholder="Search products by name or category..."
-                  className="pl-8"
+                  className="pl-8 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   ref={searchInputRef}
@@ -314,6 +577,7 @@ export default function BillingPage() {
                     variant="outline" 
                     size="icon" 
                     title="Scan Barcode"
+                    className="border-gray-200 hover:bg-gray-50"
                     onClick={() => {
                       setIsDialogOpen(true);
                       setOpenCamera(true);
@@ -321,7 +585,7 @@ export default function BillingPage() {
                       hasScanned.current = false;
                     }}
                   >
-                    <Camera className="h-4 w-4" />
+                    <Camera className="h-4 w-4 text-gray-600" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
@@ -342,14 +606,12 @@ export default function BillingPage() {
 
                         <div className="flex flex-wrap gap-2 justify-center mt-2">
                           <Button variant="outline" size="sm" onClick={handleZoomIn}>
-                            ➕ Zoom In
+                             ➖ Zoom Out
                           </Button>
                           <Button variant="outline" size="sm" onClick={handleZoomOut}>
-                            ➖ Zoom Out
+                          ➕ Zoom In
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => setOpenCamera(false)}>
-                            ❌ Close Camera
-                          </Button>
+      
                         </div>
 
                         <div className="text-center text-muted-foreground text-sm">
@@ -395,120 +657,101 @@ export default function BillingPage() {
               </Dialog>
             </div>
             
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Press F1 to focus search. Use ↑/↓ to navigate results and Enter to add to bill.
             </p>
 
-            <div className="border rounded-md overflow-auto max-h-[calc(100vh-280px)]">
-              <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
-                  <TableRow className="hover:bg-background">
-                    <TableHead>Name</TableHead>
-                    {/* <TableHead>Category</TableHead> */}
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Barcode</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product, index) => (
-                      <TableRow
-                        key={product.$id}
-                        className={`cursor-pointer py-0 ${
-                          index === selectedIndex ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted/50"
-                        }`}
-                        onClick={() => addToBill(product)}
-                      >
-                        <TableCell className="font-medium py-1.5">{product.productName}</TableCell>
-                        {/* <TableCell className="py-1.5">{product.category}</TableCell> */}
-                        <TableCell className="text-right py-1.5">₹{product.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right py-1.5">{product.barcodeNumber}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                        No products found matching your search.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+            <div className="border border-gray-200 rounded-lg overflow-auto max-h-[calc(100vh-280px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product, index) => renderProductCard(product, index))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <div className="text-gray-400 mb-2">
+                      <Search className="h-12 w-12 mx-auto" />
+                    </div>
+                    <p className="text-gray-500 text-lg">No products found matching your search.</p>
+                    <p className="text-gray-400 text-sm mt-1">Try different keywords or categories</p>
+                  </div>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground italic">Click on a product to add it to the bill</p>
+            <p className="text-xs text-gray-500 italic">Click on a product to add it to the bill</p>
           </CardContent>
         </Card>
 
         {/* Bill Section */}
-        <Card className="flex-1 min-w-0 bg-white/75">
-          <CardHeader className="flex justify-between items-center">
-            <CardTitle className='flex-2 flex gap-1 flex-col'>
-              <Input className='w-3/4' placeholder='Customer Name' onChange={(e) => setCusName(e.target.value)} />
-              <Input className='w-3/4' placeholder='Customer Mobile Number' onChange={(e) => setCusMobNum(e.target.value)} />
-            </CardTitle>
-            <div className="flex justify-center items-center flex-col gap-1">
-              <Button className='w-full' >Whatsapp</Button>
-              <Button className='w-full' onClick={generatePDF}>Generate PDF</Button>
+        <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
+          <CardHeader className="flex justify-between items-center border-b p-6">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Customer Name</label>
+                  <Input 
+                    className='w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500' 
+                    placeholder='Enter customer name' 
+                    onChange={(e) => setCusName(e.target.value)} 
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Mobile Number</label>
+                  <Input 
+                    className='w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500' 
+                    placeholder='Enter mobile number' 
+                    onChange={(e) => setCusMobNum(e.target.value)} 
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 ml-4">Date:</span>
+                <span className="text-sm font-medium text-gray-700">{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 ml-6">
+              <Button 
+                className='w-full bg-green-600 hover:bg-green-700 flex items-center gap-2'
+                onClick={sendWhatsApp}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp
+              </Button>
+              <Button className='w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2' onClick={generatePDF}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Generate PDF
+              </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="border rounded-md overflow-auto max-h-[calc(100vh-250px)]">
+          <CardContent className="p-6">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
               <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
-                  <TableRow className="hover:bg-background">
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-center">Quantity</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Subtotal</TableHead>
+                <TableHeader className="bg-gray-50">
+                  <TableRow className="hover:bg-gray-50">
+                    <TableHead className="text-gray-600 font-medium">Product</TableHead>
+                    <TableHead className="text-center text-gray-600 font-medium">Quantity</TableHead>
+                    <TableHead className="text-right text-gray-600 font-medium">Unit Price</TableHead>
+                    <TableHead className="text-right text-gray-600 font-medium">Subtotal</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {billItems.length > 0 ? (
                     billItems.map((item) => (
-                      <TableRow key={item.$id}>
-                        <TableCell className="font-medium py-1.5">{item.productName}</TableCell>
-                        <TableCell className="py-1.5">
-                          <div className="flex items-center justify-center space-x-1">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateQuantity(item.$id, item.quantity - 1)
-                              }}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => handleQuantityChange(item.$id, e.target.value)}
-                              className="w-14 text-center px-1"
-                              step="0.01"
-                              min="0"
-                            />
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateQuantity(item.$id, item.quantity + 1)
-                              }}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
+                      <TableRow key={item.$id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium py-3 text-gray-700">{item.productName}</TableCell>
+                        <TableCell className="py-3">
+                          {renderQuantityInput(item)}
                         </TableCell>
-                        <TableCell className="text-right py-1.5">₹{item.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right py-1.5">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
-                        <TableCell className="py-1.5">
+                        <TableCell className="text-right py-3 text-gray-700">₹{item.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right py-3 text-gray-700 font-medium">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
+                        <TableCell className="py-3">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive"
+                            className="h-8 w-8 text-red-600 hover:bg-red-50 transition-all duration-200 ease-in-out transform hover:scale-110"
                             onClick={(e) => {
                               e.stopPropagation()
                               removeFromBill(item.$id)
@@ -521,8 +764,14 @@ export default function BillingPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                        No items added to the bill yet.
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <div className="flex flex-col items-center text-gray-500">
+                          <svg className="w-12 h-12 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                          </svg>
+                          <p className="text-lg font-medium">No items added to the bill yet</p>
+                          <p className="text-sm mt-1">Add products from the search section</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
@@ -531,10 +780,10 @@ export default function BillingPage() {
             </div>
 
             {billItems.length > 0 && (
-              <div className="mt-4 border-t pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total:</span>
-                  <span className="font-bold text-xl">₹{totalBill.toFixed(2)}</span>
+              <div className="mt-6 space-y-4">
+                <div className="border-t pt-4 flex justify-between items-center">
+                  <span className="text-lg font-medium text-gray-700">Total Amount</span>
+                  <span className="text-2xl font-bold text-gray-900">₹{totalBill.toFixed(2)}</span>
                 </div>
               </div>
             )}
