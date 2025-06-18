@@ -121,7 +121,7 @@
 
 @layer utilities {
   .h-screen-48 {
-    height: calc(100vh - 48px);
+    min-height: calc(100vh - 80px);
   }
 
   .tbor {

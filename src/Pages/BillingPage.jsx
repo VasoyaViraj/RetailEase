@@ -28,6 +28,9 @@ export default function BillingPage() {
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [stockError, setStockError] = useState("")
 
+  // Card Animation States
+  const [animatingCards, setAnimatingCards] = useState({})
+
   let [cusName, setCusName] = useState('')
   let [cusMobNum, setCusMobNum] = useState(null)
 
@@ -62,17 +65,18 @@ export default function BillingPage() {
 
       if (document.activeElement !== searchInputRef.current) return
 
-      if (e.key === "ArrowDown") {
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
         e.preventDefault()
         if (filteredProducts.length > 0) {
           setSelectedIndex((prev) => (prev < filteredProducts.length - 1 ? prev + 1 : prev))
         }
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
         e.preventDefault()
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev))
       } else if (e.key === "Enter") {
         e.preventDefault()
         if (selectedIndex >= 0 && selectedIndex < filteredProducts.length) {
+          triggerCardAnimation(filteredProducts[selectedIndex].$id)
           addToBill(filteredProducts[selectedIndex])
           setSearchTerm("")
         }
@@ -85,6 +89,14 @@ export default function BillingPage() {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [filteredProducts, selectedIndex])
+
+  // Animation function
+  const triggerCardAnimation = (cardId) => {
+    setAnimatingCards(prev => ({ ...prev, [cardId]: true }))
+    setTimeout(() => {
+      setAnimatingCards(prev => ({ ...prev, [cardId]: false }))
+    }, 550)
+  }
 
   // Scanner Functions
   const search = (array, number) => {
@@ -410,6 +422,7 @@ export default function BillingPage() {
       // Search for the product and add to bill
       const foundProduct = search(products, result.text);
       if (foundProduct) {
+        triggerCardAnimation(foundProduct.$id);
         addToBill(foundProduct);
         setError("");
         // Show success message briefly, then reset for next scan
@@ -441,35 +454,53 @@ export default function BillingPage() {
     resetScannerState();
   };
 
-  // Update the product card to show stock status
+  // Update the product card to show stock status with animation
   const renderProductCard = (product, index) => (
     <div
       key={product.$id}
-      className={`cursor-pointer rounded-lg border transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${
+      className={`relative overflow-hidden cursor-pointer rounded-lg border transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${
         index === selectedIndex 
-          ? "bg-white border-gray-200 hover:border-blue-200 hover:shadow-sm" 
+          ? "bg-blue-100 border-gray-200 hover:border-blue-200 hover:shadow-sm" 
           : "bg-white border-gray-200 hover:border-blue-200 hover:shadow-md"
       }`}
-      onClick={() => addToBill(product)}
+      onClick={() => {
+        triggerCardAnimation(product.$id);
+        addToBill(product);
+      }}
     >
-      <div className="p-4">
+      {/* Animated background overlay */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 transform transition-transform duration-[500ms] ease-out ${
+          animatingCards[product.$id] ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      />
+
+      <div className="relative z-10 p-4">
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+            <h3 className={`font-medium line-clamp-2 group-hover:text-blue-600 transition-colors duration-200 ${
+              animatingCards[product.$id] ? 'text-white' : 'text-gray-900'
+            }`}>
               {product.productName}
             </h3>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+              <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-300 ${
+                animatingCards[product.$id] 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
                 #{product.barcodeNumber}
               </span>
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                product.stock > 10 
-                  ? 'bg-green-100 text-green-600' 
-                  : product.stock > 0 
-                    ? 'bg-yellow-100 text-yellow-600' 
-                    : 'bg-red-100 text-red-600'
+              <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-300 ${
+                animatingCards[product.$id]
+                  ? 'bg-white/20 text-white'
+                  : product.stock > 10 
+                    ? 'bg-green-100 text-green-600' 
+                    : product.stock > 0 
+                      ? 'bg-yellow-100 text-yellow-600' 
+                      : 'bg-red-100 text-red-600'
               }`}>
-                {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                {product.stock > 0 ? `${product.stock}` : 'Out of stock'}
               </span>
             </div>
           </div>
@@ -477,7 +508,9 @@ export default function BillingPage() {
 
         <div className="space-y-2 mb-3">
           {product.description && (
-            <p className="text-sm text-gray-500 line-clamp-2">
+            <p className={`text-sm line-clamp-2 transition-colors duration-300 ${
+              animatingCards[product.$id] ? 'text-white/90' : 'text-gray-500'
+            }`}>
               {product.description}
             </p>
           )}
@@ -485,11 +518,17 @@ export default function BillingPage() {
 
         <div className="flex justify-between items-center pt-2 border-t border-gray-100">
           <div className="flex flex-col">
-            <span className="text-lg font-semibold text-blue-600 group-hover:text-blue-700 transition-colors duration-200">
+            <span className={`text-lg font-semibold transition-colors duration-300 ${
+              animatingCards[product.$id] 
+                ? 'text-white' 
+                : 'text-blue-600 group-hover:text-blue-700'
+            }`}>
               ₹{product.price.toFixed(2)}
             </span>
             {product.mrp && product.mrp > product.price && (
-              <span className="text-xs text-gray-400 line-through">
+              <span className={`text-xs line-through transition-colors duration-300 ${
+                animatingCards[product.$id] ? 'text-white/70' : 'text-gray-400'
+              }`}>
                 MRP: ₹{product.mrp.toFixed(2)}
               </span>
             )}
@@ -497,7 +536,11 @@ export default function BillingPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200 ease-in-out transform hover:scale-105"
+            className={`transition-all duration-200 ease-in-out transform hover:scale-105 ${
+              animatingCards[product.$id]
+                ? 'text-white hover:text-white hover:bg-white/20'
+                : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+            }`}
           >
             ➕
           </Button>
@@ -544,7 +587,7 @@ export default function BillingPage() {
   )
 
   return (
-    <div className="w-full mx-auto p-4 h-screen-48 bg-gray-50">  
+    <div className=" w-full mx-auto p-4 pt-0 h-screen-48">  
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Product Search Section */}
         <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
@@ -662,7 +705,7 @@ export default function BillingPage() {
             </p>
 
             <div className="border border-gray-200 rounded-lg overflow-auto max-h-[calc(100vh-280px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 pr-20 lg:pr-0">
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((product, index) => renderProductCard(product, index))
                 ) : (
@@ -683,8 +726,8 @@ export default function BillingPage() {
         {/* Bill Section */}
         <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
           <CardHeader className="flex justify-between items-center border-b p-6">
-            <div className="flex-1 space-y-4">
-              <div className="flex items-center gap-4">
+            <div className="flex-1 space-y-4 ">
+              <div className="flex items-center gap-4 flex-col lg:flex-row">
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Customer Name</label>
                   <Input 

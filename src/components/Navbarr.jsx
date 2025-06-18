@@ -7,7 +7,7 @@ const Navbarr = () => {
 
     return(
         <>
-            <header className="flex h-12 w-full shrink-0 items-center px-4 md:px-6 shadow-2xl border-black bg-white/75 rounded-2xl">
+            <header className="flex h-12 shrink-0 items-center mx-4 my-4 px-4 md:px-6 shadow-md bg-white/70 rounded-2xl">
             <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="outline bg-none" size="icon" className="lg:hidden">
