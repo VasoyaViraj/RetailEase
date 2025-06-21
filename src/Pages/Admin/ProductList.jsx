@@ -177,6 +177,7 @@ const ProductList = () => {
             <TableHead className="w-64 text-gray-700">Product Name</TableHead>
             <TableHead className="w-36 text-gray-700">Barcode Number</TableHead>
             <TableHead className="max-w-36 text-right text-gray-700">Price (₹)</TableHead>
+            <TableHead className="max-w-36 text-right text-gray-700">Buying Price (₹)</TableHead>
             <TableHead className="w-24 text-center text-gray-700">Stocks</TableHead>
             <TableHead className="w-32 text-center text-gray-700">Actions</TableHead>
           </TableRow>
@@ -187,6 +188,7 @@ const ProductList = () => {
               <TableCell className="w-64 font-medium text-gray-900">{d.productName}</TableCell>
               <TableCell className="w-36 text-gray-700">{d.barcodeNumber}</TableCell>
               <TableCell className="w-36 text-right text-gray-800 font-semibold">{d.price}</TableCell>
+              <TableCell className="w-36 text-right text-gray-800 font-semibold">{d.buyingPrice}</TableCell>
               <TableCell className="w-24 text-center">
                 <span className={`px-2 py-1 rounded-full text-sm font-medium ${
                   d.stock > 10 

@@ -10,6 +10,7 @@ import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import BarcodeScannerComponent from "react-qr-barcode-scanner"
 import { databases } from "@/services/appwriteConfig"
+import confetti from "canvas-confetti";
 
 export default function BillingPage() {
 
@@ -186,7 +187,8 @@ export default function BillingPage() {
             productName: product.productName,
             price: product.price,
             quantity: 1,
-            stock: product.stock // Keep track of available stock
+            stock: product.stock, // Keep track of available stock
+            buyingPrice : product.buyingPrice
           },
         ]
       }
@@ -222,6 +224,7 @@ export default function BillingPage() {
   }
 
   const totalBill = billItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const netProfit = totalBill - billItems.reduce((sum, item) => sum + item.buyingPrice * item.quantity, 0)
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
@@ -231,148 +234,168 @@ export default function BillingPage() {
     // return `${parseFloat(amount).toFixed(2)}`
   }
 
-  const generatePDF = async () => {
+  const checkoutFun = async () => {
+
+    console.log(billItems)
+    // Validate bill items
+    if (billItems.length === 0) {
+      setStockError("Please add items to the bill")
+      setTimeout(() => setStockError(""), 3000)
+      return
+    }
+
+    // Validate customer details
+    if (!cusName || !cusMobNum) {
+      setStockError("Please enter customer details")
+      setTimeout(() => setStockError(""), 3000)
+      return
+    }
+
     try {
-      // Validate bill items
-      if (billItems.length === 0) {
-        setStockError("Please add items to the bill")
-        setTimeout(() => setStockError(""), 3000)
-        return
-      }
-
-      // Validate customer details
-      if (!cusName || !cusMobNum) {
-        setStockError("Please enter customer details")
-        setTimeout(() => setStockError(""), 3000)
-        return
-      }
-
-      // Update stock in database
-      try {
-        for (const item of billItems) {
-          const product = products.find(p => p.$id === item.$id)
-          if (!product) {
-            throw new Error(`Product not found: ${item.productName}`)
-          }
-
-          const newStock = product.stock - item.quantity
-          if (newStock < 0) {
-            throw new Error(`Insufficient stock for ${product.productName}`)
-          }
-
-          await databases.updateDocument(
-            '6810918b0009c28b3b9d',
-            '6810919e003221b85c31',
-            product.$id,
-            {
-              stock: newStock
-            }
-          )
+      for (const item of billItems) {
+        const product = products.find(p => p.$id === item.$id)
+        if (!product) {
+          throw new Error(`Product not found: ${item.productName}`)
         }
 
-        // Update local state
-        setProducts(prevProducts => 
-          prevProducts.map(product => {
-            const billItem = billItems.find(item => item.$id === product.$id)
-            if (billItem) {
-              return {
-                ...product,
-                stock: product.stock - billItem.quantity
-              }
-            }
-            return product
-          })
+        const newStock = product.stock - item.quantity
+        if (newStock < 0) {
+          throw new Error(`Insufficient stock for ${product.productName}`)
+        }
+
+        await databases.updateDocument(
+          '6810918b0009c28b3b9d',
+          '6810919e003221b85c31',
+          product.$id,
+          {
+            stock: newStock
+          }
         )
-
-        // Generate PDF
-        const doc = new jsPDF()
-        
-        // Header
-        doc.setFontSize(24)
-        doc.text('RetailEase', 20, 20)
-        doc.setFontSize(20)
-        doc.text('INVOICE', 20, 35)
-
-        // Customer Details
-        doc.setFontSize(12)
-        doc.text('Bill To:', 20, 65)
-        doc.setFontSize(11)
-        doc.text(`Name: ${cusName}`, 20, 72)
-        doc.text(`Phone: ${cusMobNum}`, 20, 78)
-
-        // Invoice Details
-        doc.setFontSize(12)
-        doc.text('Invoice Details:', 120, 65)
-        doc.setFontSize(11)
-        const invoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-        doc.text(`Invoice No: ${invoiceNumber}`, 120, 72)
-        doc.text(`Date: ${new Date().toLocaleDateString()}`, 120, 78)
-
-        // Table Header
-        const tableColumn = ["Product", "Unit Price", "Quantity", "Subtotal"]
-        const tableRows = billItems.map((product) => [
-          product.productName,
-          formatCurrency(product.price),
-          product.quantity,
-          formatCurrency(product.price * product.quantity),
-        ])
-
-        // Add total row
-        tableRows.push(['', '', 'Total:', formatCurrency(totalBill)])
-
-        // Generate table
-        autoTable(doc, {
-          head: [tableColumn],
-          body: tableRows,
-          startY: 95,
-          margin: { left: 20, right: 20 },
-          theme: 'grid',
-          styles: { fontSize: 10 },
-          headStyles: { fillColor: [66, 66, 66] }
-        })
-
-        // Convert PDF to base64
-        const pdfData = doc.output('datauristring')
-
-        // Open PDF in new window
-        const printWindow = window.open('', '_blank')
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Invoice ${invoiceNumber}</title>
-              <style>
-                body, html {
-                  margin: 0;
-                  padding: 0;
-                  height: 100%;
-                  overflow: hidden;
-                }
-                iframe {
-                  width: 100%;
-                  height: 100vh;
-                  border: none;
-                }
-              </style>
-            </head>
-            <body>
-              <iframe src="${pdfData}"></iframe>
-            </body>
-          </html>
-        `)
-        printWindow.document.close()
-
-        // Clear bill and customer info
-        setBillItems([])
-        setCusName('')
-        setCusMobNum(null)
-        setSearchTerm('')
-
-        // Show success message
-      } catch (error) {
-        console.error('Error:', error)
-        setStockError(error.message)
-        setTimeout(() => setStockError(""), 3000)
       }
+
+      await databases.createDocument(
+        '6810918b0009c28b3b9d',
+        '685586b10032ef98eed5',
+        'unique()',
+        {
+          'oderValue': totalBill,
+          'profit' : netProfit,
+          'orderItems' : JSON.stringify(billItems),
+          cusName,
+          cusMobNum,
+          date : new Date().getTime()
+        }
+      )
+
+      // Update local state
+      setProducts(prevProducts => 
+        prevProducts.map(product => {
+          const billItem = billItems.find(item => item.$id === product.$id)
+          if (billItem) {
+            return {
+              ...product,
+              stock: product.stock - billItem.quantity
+            }
+          }
+          return product
+        })
+      )
+      
+      // Clear bill and customer info
+      setBillItems([])
+      setCusName('')
+      setCusMobNum('')
+      setSearchTerm('')
+
+      handleConfetti()
+      // Show success message
+    } catch (error) {
+      console.error('Error:', error)
+      setStockError(error.message)
+      setTimeout(() => setStockError(""), 3000)
+    }
+  }
+
+  const generatePDF = async () => {
+
+    try {
+      // Generate PDF
+      const doc = new jsPDF()
+      
+      // Header
+      doc.setFontSize(24)
+      doc.text('RetailEase', 20, 20)
+      doc.setFontSize(20)
+      doc.text('INVOICE', 20, 35)
+
+      // Customer Details
+      doc.setFontSize(12)
+      doc.text('Bill To:', 20, 65)
+      doc.setFontSize(11)
+      doc.text(`Name: ${cusName}`, 20, 72)
+      doc.text(`Phone: ${cusMobNum}`, 20, 78)
+
+      // Invoice Details
+      doc.setFontSize(12)
+      doc.text('Invoice Details:', 120, 65)
+      doc.setFontSize(11)
+      const invoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+      doc.text(`Invoice No: ${invoiceNumber}`, 120, 72)
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 120, 78)
+
+      // Table Header
+      const tableColumn = ["Product", "Unit Price", "Quantity", "Subtotal"]
+      const tableRows = billItems.map((product) => [
+        product.productName,
+        formatCurrency(product.price),
+        product.quantity,
+        formatCurrency(product.price * product.quantity),
+      ])
+
+      // Add total row
+      tableRows.push(['', '', 'Total:', formatCurrency(totalBill)])
+
+      // Generate table
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 95,
+        margin: { left: 20, right: 20 },
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [66, 66, 66] }
+      })
+
+      // Convert PDF to base64
+      const pdfData = doc.output('datauristring')
+
+      // Open PDF in new window
+      const printWindow = window.open('', '_blank')
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Invoice ${invoiceNumber}</title>
+            <style>
+              body, html {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                overflow: hidden;
+              }
+              iframe {
+                width: 100%;
+                height: 100vh;
+                border: none;
+              }
+            </style>
+          </head>
+          <body>
+            <iframe src="${pdfData}"></iframe>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+
     } catch (error) {
       console.error('Error:', error)
       alert('Error generating bill. Please try again.')
@@ -454,11 +477,49 @@ export default function BillingPage() {
     resetScannerState();
   };
 
+  const handleConfetti = () => {
+    const scalar = 2;
+    const unicorn = confetti.shapeFromText({ text: "🦄", scalar });
+ 
+    const defaults = {
+      spread: 360,
+      ticks: 60,
+      gravity: 0,
+      decay: 0.96,
+      startVelocity: 20,
+      shapes: [unicorn],
+      scalar,
+    };
+ 
+    const shoot = () => {
+      confetti({
+        ...defaults,
+        particleCount: 30,
+      });
+ 
+      confetti({
+        ...defaults,
+        particleCount: 5,
+      });
+ 
+      confetti({
+        ...defaults,
+        particleCount: 15,
+        scalar: scalar / 2,
+        shapes: ["circle"],
+      });
+    };
+ 
+    setTimeout(shoot, 0);
+    setTimeout(shoot, 100);
+    setTimeout(shoot, 200);
+  };
+
   // Update the product card to show stock status with animation
   const renderProductCard = (product, index) => (
     <div
       key={product.$id}
-      className={`relative overflow-hidden cursor-pointer rounded-lg border transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${
+      className={`relative overflow-hidden cursor-pointer rounded-lg border transition-all duration-200 ease-in-out transform hover:scale-[1.05] ${
         index === selectedIndex 
           ? "bg-blue-100 border-gray-200 hover:border-blue-200 hover:shadow-sm" 
           : "bg-white border-gray-200 hover:border-blue-200 hover:shadow-md"
@@ -591,10 +652,10 @@ export default function BillingPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Product Search Section */}
         <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
-          <CardHeader className="pb-2 border-b">
+          <CardHeader className="border-b">
             <CardTitle className="text-xl font-semibold text-gray-800">Product Search</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 pt-4">
+          <CardContent className="space-y-3">
             {stockError && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm">
                 {stockError}
@@ -705,7 +766,7 @@ export default function BillingPage() {
             </p>
 
             <div className="border border-gray-200 rounded-lg overflow-auto max-h-[calc(100vh-280px)]">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 pr-20 lg:pr-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 pr-20 lg:pr-0 overflow-hidden">
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((product, index) => renderProductCard(product, index))
                 ) : (
@@ -725,15 +786,17 @@ export default function BillingPage() {
 
         {/* Bill Section */}
         <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
-          <CardHeader className="flex justify-between items-center border-b p-6">
-            <div className="flex-1 space-y-4 ">
-              <div className="flex items-center gap-4 flex-col lg:flex-row">
+          <CardHeader className="flex justify-between items-center border-b p-6 pt-0">
+
+            <div className="flex-1 space-y-4">
+              <div className="flex items-start justify-center gap-4 flex-col lg:flex-row">
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Customer Name</label>
                   <Input 
                     className='w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500' 
                     placeholder='Enter customer name' 
                     onChange={(e) => setCusName(e.target.value)} 
+                    value={cusName}
                   />
                 </div>
                 <div className="flex-1">
@@ -741,18 +804,39 @@ export default function BillingPage() {
                   <Input 
                     className='w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500' 
                     placeholder='Enter mobile number' 
+                    type='number'
                     onChange={(e) => setCusMobNum(e.target.value)} 
+                    value={cusMobNum}
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 ml-4">Date:</span>
-                <span className="text-sm font-medium text-gray-700">{new Date().toLocaleDateString()}</span>
+              <div className="flex gap-2 items-start text-[14px] lg:text-[17px] cursor-pointer">
+                <span className=" text-gray-500">Date:</span>
+                <span 
+                  className=" font-medium text-gray-700" 
+                  onClick={() => {
+                    setCusName('*RetailEase')
+                    setCusMobNum(1010102020)
+                }}>
+                  {new Date().toLocaleDateString('en-GB')}
+                </span>
               </div>
             </div>
+
+
             <div className="flex flex-col gap-2 ml-6">
               <Button 
-                className='w-full bg-green-600 hover:bg-green-700 flex items-center gap-2'
+                className='w-full bg-neutral-600 hover:bg-neutral-400 flex items-center justify-evenly gap-2'
+                onClick={checkoutFun}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 15C3 17.8284 3 19.2426 3.87868 20.1213C4.75736 21 6.17157 21 9 21H15C17.8284 21 19.2426 21 20.1213 20.1213C21 19.2426 21 17.8284 21 15" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 16V3M12 3L16 7.375M12 3L8 7.375" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Checkout
+              </Button>
+              <Button 
+                className='w-full bg-green-600 hover:bg-green-700 flex items-center justify-evenly gap-2'
                 onClick={sendWhatsApp}
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -760,7 +844,10 @@ export default function BillingPage() {
                 </svg>
                 WhatsApp
               </Button>
-              <Button className='w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2' onClick={generatePDF}>
+              <Button 
+                className='w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-evenly gap-2' 
+                onClick={generatePDF}
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>

@@ -25,6 +25,7 @@ const AddProduct = () => {
   let [productData, setProductData] = useState({
     "productName" : "",
     "barcodeNumber" : null,
+    "buyingPrice" : null,
     "price" : null,
     "stock" : null
   })
@@ -112,11 +113,23 @@ const AddProduct = () => {
                   <Label htmlFor="password">Price</Label>
                   <Input
                     id="price"
-                    type="text"
+                    type="number"
                     placeholder="Enter Product Price"
                     inputMode="numeric"
                     value={productData.price}
                     onChange={(e) => setProductData({...productData, "price" : parseFloat(e.target.value)})}
+                    required
+                  />
+              </div>
+              <div className="grid gap-2">
+                  <Label htmlFor="password">Buying Price</Label>
+                  <Input
+                    id="buyingPrice"
+                    type="number"
+                    placeholder="Enter buying Price"
+                    inputMode="numeric"
+                    value={productData.buyingPrice}
+                    onChange={(e) => setProductData({...productData, "buyingPrice" : parseFloat(e.target.value)})}
                     required
                   />
               </div>
@@ -140,7 +153,7 @@ const AddProduct = () => {
                     inputMode="numeric"
                     min="0"
                     value={productData.stock}
-                    onChange={(e) => setProductData({...productData, "stock" : parseInt(e.target.value) || 0})}
+                    onChange={(e) => setProductData({...productData, "stock" : parseFloat(e.target.value) || 0})}
                     required
                   />
               </div>
