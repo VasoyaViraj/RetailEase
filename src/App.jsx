@@ -2,26 +2,40 @@ import BillingPage from './Pages/BillingPage';
 import AddProduct from './Pages/Admin/AddProduct';
 import ProductList from './Pages/Admin/ProductList';
 import ScanProduct from './Pages/Admin/ScanProduct';
-import { BrowserRouter, Routes, Route} from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom"; // Import useLocation
 import Navbarr from './components/Navbarr';
 import { AllProductsProvider } from './contexts/allProductsContext';
+import Dashboard from './Pages/Admin/Dashboard';
 
 function App() {
   return(
     <>
     <AllProductsProvider>
       <BrowserRouter>
-      <Navbarr/>
-        <Routes>
-          <Route path="/" element={<BillingPage/>} />
-          <Route path="/admin/addproduct" element={<AddProduct/> }/>
-          <Route path="/admin/productlist" element={<ProductList/> }/>
-          <Route path="/admin/scanproduct" element={<ScanProduct/> }/>
-        </Routes>
+        <AppContent /> 
       </BrowserRouter>
     </AllProductsProvider>
     </>
   )
 }
 
-export default App
+function AppContent() { 
+  const location = useLocation();
+
+  const noNavbarPaths = ['/dash']; 
+
+  return (
+    <>
+      {!noNavbarPaths.includes(location.pathname) && <Navbarr />} 
+      <Routes>
+        <Route path="/" element={<BillingPage/>} />
+        <Route path="/admin/addproduct" element={<AddProduct/> }/>
+        <Route path="/admin/productlist" element={<ProductList/> }/>
+        <Route path="/admin/scanproduct" element={<ScanProduct/> }/>
+        <Route path="/dash" element={<Dashboard/> }/>
+      </Routes>
+    </>
+  );
+}
+
+export default App;

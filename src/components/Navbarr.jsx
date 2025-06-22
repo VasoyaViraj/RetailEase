@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 const Navbarr = () => {
 
     return(
-        <>
-            <header className="flex h-12 shrink-0 items-center mx-4 my-4 px-4 md:px-6 shadow-md bg-white/70 rounded-2xl">
+        <>  
+          <div className='navDiv h-[80px] flex justify-center items-center w-full px-4'>
+            <header className="flex-1 flex h-12 shrink-0 items-center px-4 md:px-6 shadow-md bg-white rounded-2xl">
             <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="outline bg-none" size="icon" className="lg:hidden">
@@ -72,6 +73,7 @@ const Navbarr = () => {
                 </Link>
             </nav>
             </header>
+          </div>
         </>
     )
 }
