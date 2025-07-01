@@ -431,7 +431,7 @@ export default function BillingPage() {
     const phoneNumber = cusMobNum.replace(/[^0-9]/g, '')
     
     // Create WhatsApp URL with the message
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(billMessage)}`
+    const whatsappUrl = `https://wa.me/+91${phoneNumber}?text=${encodeURIComponent(billMessage)}`
     
     // Open WhatsApp in a new tab
     window.open(whatsappUrl, '_blank')
@@ -648,8 +648,8 @@ export default function BillingPage() {
   )
 
   return (
-    <div className=" w-full mx-auto p-4 pt-0 h-screen-48">  
-      <div className="flex flex-col lg:flex-row gap-6">
+    <div className="w-full mx-auto flex p-4 pt-0 h-screen-48">  
+      <div className="flex-1 flex flex-col lg:flex-row gap-6">
         {/* Product Search Section */}
         <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
           <CardHeader className="border-b">

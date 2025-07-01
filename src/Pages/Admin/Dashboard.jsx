@@ -34,66 +34,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import mockOrders from '../../../mockOrders.json'
-
-console.log(mockOrders[0])
-// Mock data
-// const mockOrders = [
-//   {
-//     $id: "ORD001",
-//     date: "2024-01-20",
-//     customerName: "John Smith",
-//     customerMobile: "+1234567890",
-//     orderValue: 125.5,
-//     profit: 35.2,
-//     items: [
-//       { productName: "Wireless Headphones", quantity: 1, barcode: "WH001", price: 89.99, subtotal: 89.99 },
-//       { productName: "Phone Case", quantity: 2, barcode: "PC001", price: 17.75, subtotal: 35.5 },
-//     ],
-//   },
-//   {
-//     $id: "ORD002",
-//     date: "2024-01-20",
-//     customerName: "Sarah Johnson",
-//     customerMobile: "+1234567891",
-//     orderValue: 89.99,
-//     profit: 25.5,
-//     items: [{ productName: "Bluetooth Speaker", quantity: 1, barcode: "BS001", price: 89.99, subtotal: 89.99 }],
-//   },
-//   {
-//     $id: "ORD003",
-//     date: "2024-01-19",
-//     customerName: "Mike Davis",
-//     customerMobile: "+1234567892",
-//     orderValue: 245.75,
-//     profit: 78.4,
-//     items: [
-//       { productName: "Laptop Stand", quantity: 1, barcode: "LS001", price: 129.99, subtotal: 129.99 },
-//       { productName: "Wireless Mouse", quantity: 2, barcode: "WM001", price: 57.88, subtotal: 115.76 },
-//     ],
-//   },
-//   {
-//     $id: "ORD004",
-//     date: "2024-01-19",
-//     customerName: "Emily Wilson",
-//     customerMobile: "+1234567893",
-//     orderValue: 67.5,
-//     profit: 18.9,
-//     items: [{ productName: "USB Cable", quantity: 3, barcode: "UC001", price: 22.5, subtotal: 67.5 }],
-//   },
-//   {
-//     $id: "ORD005",
-//     date: "2024-01-18",
-//     cusName: "David Brown",
-//     customerMobile: "+1234567894",
-//     orderValue: 156.25,
-//     profit: 42.3,
-//     items: [
-//       { productName: "Tablet Case", quantity: 1, barcode: "TC001", price: 45.99, subtotal: 45.99 },
-//       { productName: "Screen Protector", quantity: 5, barcode: "SP001", price: 22.05, subtotal: 110.26 },
-//     ],
-//   },
-// ]
+import { databases } from "@/services/appwriteConfig"
+import { Query } from "@/services/appwriteConfig"
+// import mockOrders from '../../../mockOrders.json'
 
 const chartConfig = {
   profit: {
@@ -112,6 +55,7 @@ export default function Dashboard() {
   })
   const [currentWeekOffset, setCurrentWeekOffset] = React.useState(0)
   const [selectedDate, setSelectedDate] = React.useState(undefined)
+  const [mockOrders, setMockOrders] = React.useState([])
 
   // Calculate metrics
   const today = new Date()
@@ -119,10 +63,10 @@ export default function Dashboard() {
   const startOfThisWeek = startOfWeek(today)
   const startOfThisMonth = startOfMonth(today)
 
-  const todayOrders = mockOrders.filter((order) => isToday((order.date)))
-  const yesterdayOrders = mockOrders.filter((order) => isYesterday((order.date)))
-  const thisWeekOrders = mockOrders.filter((order) => (order.date) >= startOfThisWeek)
-  const thisMonthOrders = mockOrders.filter((order) => (order.date) >= startOfThisMonth)
+  const todayOrders = mockOrders?.filter((order) => isToday((order.date)))
+  const yesterdayOrders = mockOrders?.filter((order) => isYesterday((order.date)))
+  const thisWeekOrders = mockOrders?.filter((order) => (order.date) >= startOfThisWeek)
+  const thisMonthOrders = mockOrders?.filter((order) => (order.date) >= startOfThisMonth)
 
   const todayProfit = todayOrders.reduce((sum, order) => sum + order.profit, 0)
   const yesterdayProfit = yesterdayOrders.reduce((sum, order) => sum + order.profit, 0)
@@ -136,6 +80,15 @@ export default function Dashboard() {
   const weekStart = startOfWeek(currentWeek)
   const weekEnd = endOfWeek(currentWeek)
 
+  const getProfit = (date) => {
+    return mockOrders?.reduce((sum, order) => {
+      if(date == format(order.date, "yyyy-MM-dd")){
+        return sum+order.profit
+      }
+      return sum;
+    },0)
+  }
+
   // Generate chart data for the current week
   const generateChartData = (weekOffset) => {
     const baseWeek = addWeeks(today, weekOffset)
@@ -145,27 +98,9 @@ export default function Dashboard() {
       const date = addDays(start, i)
       const dateStr = format(date, "yyyy-MM-dd")
 
-      // Mock profit data - in real app, this would come from your database
-      const mockProfitData = {
-        "2024-01-14": 125.5,
-        "2024-01-15": 189.75,
-        "2024-01-16": 234.2,
-        "2024-01-17": 167.8,
-        "2024-01-18": 198.45,
-        "2024-01-19": 287.3,
-        "2024-01-20": 325.7,
-        "2024-01-21": 156.8,
-        "2024-01-22": 278.9,
-        "2024-01-23": 345.6,
-        "2024-01-24": 298.4,
-        "2024-01-25": 412.3,
-        "2024-01-26": 367.8,
-        "2024-01-27": 445.2,
-      }
-
       return {
         date: dateStr,
-        profit: mockProfitData[dateStr] || Math.random() * 300 + 100,
+        profit: getProfit(dateStr),
         fullDate: format(date, "EEEE, MMMM d, yyyy"),
       }
     })
@@ -198,7 +133,31 @@ export default function Dashboard() {
     }
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [activeTab, searchTerm, dateRange])
+  }, [activeTab, searchTerm, dateRange,mockOrders])
+
+  React.useEffect(()=>{
+    const fetchAllDocuments = async () => {
+      const allDocs = [];
+      const dbId = '6810918b0009c28b3b9d';
+      const collectionId = '685586b10032ef98eed5';
+      let offset = 0;
+      const limit = 100;
+    
+      while (true) {
+        const res = await databases.listDocuments(dbId, collectionId, [
+          Query.limit(limit),
+          Query.offset(offset)
+        ]);
+    
+        allDocs.push(...res.documents);
+        if (res.documents.length < limit) break;
+        offset += limit;
+      }
+    
+      setMockOrders(allDocs);
+    };
+     fetchAllDocuments()
+  },[])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-6">
@@ -255,8 +214,8 @@ export default function Dashboard() {
               <CalendarDays className="h-4 w-4 text-white/40" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl text-white font-bold">{thisWeekOrders.length}</div>
-              <p className="text-xs text-white/40">₹{thisWeekProfit.toFixed(2)} profit</p>
+              <div className="text-2xl text-white font-bold">₹{thisWeekProfit.toFixed(2)}</div>
+              <p className="text-xs text-white/40">{thisWeekOrders.length} orders</p>
             </CardContent>
           </Card>
 
@@ -266,8 +225,8 @@ export default function Dashboard() {
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl text-white font-bold">{thisMonthOrders.length}</div>
-              <p className="text-xs text-white/40">₹{thisMonthProfit.toFixed(2)} profit</p>
+              <div className="text-2xl text-white font-bold">₹{thisMonthProfit.toFixed(2)}</div>
+              <p className="text-xs text-white/40">{thisMonthOrders.length} orders</p>
             </CardContent>
           </Card>
         </div>
@@ -476,10 +435,7 @@ export default function Dashboard() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold text-green-600">
-                              $
-                              {chartData
-                                .find((d) => d.date === format(selectedDate, "yyyy-MM-dd"))
-                                ?.profit.toFixed(2) || "0.00"}
+                              ${getProfit(format(selectedDate, "yyyy-MM-dd"))?.toFixed(2)}
                             </div>
                             <p className="text-xs text-muted-foreground">Total profit for this day</p>
                           </CardContent>
@@ -490,9 +446,9 @@ export default function Dashboard() {
                             <CardTitle className="text-sm font-medium text-white">Orders Count</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-2xl font-bold text-white">
                               {
-                                mockOrders.filter(
+                                mockOrders?.filter(
                                   (order) =>
                                     format((order.date), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd"),
                                 ).length
@@ -515,8 +471,7 @@ export default function Dashboard() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {mockOrders
-                              .filter(
+                            {mockOrders?.filter(
                                 (order) =>
                                   format((order.date), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd"),
                               )
@@ -528,7 +483,7 @@ export default function Dashboard() {
                                 >
                                   <TableCell className="font-medium text-white">{order.$id}</TableCell>
                                   <TableCell className="text-gray-300">{order.cusName}</TableCell>
-                                  <TableCell className="text-gray-300">${order.orderValue?.toFixed(2)}</TableCell>
+                                  <TableCell className="text-gray-300">${order.oderValue?.toFixed(2)}</TableCell>
                                   <TableCell className="text-emerald-400 font-medium">
                                     ${order.profit?.toFixed(2)}
                                   </TableCell>
