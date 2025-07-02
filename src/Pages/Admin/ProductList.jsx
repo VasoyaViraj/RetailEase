@@ -109,8 +109,8 @@ const ProductList = () => {
 
       // Update in database
       const updatedProduct = await databases.updateDocument(
-        '6810918b0009c28b3b9d',
-        '6810919e003221b85c31',
+        import.meta.env.VITE_APPWRITE_DATABASEID,
+        import.meta.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
         productToEdit.$id,
         updateData
       );
@@ -147,8 +147,8 @@ const ProductList = () => {
   const handleDeleteConfirm = async () => {
     try {
       await databases.deleteDocument(
-        '6810918b0009c28b3b9d',
-        '6810919e003221b85c31',
+        import.meta.env.VITE_APPWRITE_DATABASEID,
+        import.meta.env.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
         productToDelete.$id
       );
       

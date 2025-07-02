@@ -36,11 +36,10 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { databases } from "@/services/appwriteConfig"
 import { Query } from "@/services/appwriteConfig"
-// import mockOrders from '../../../mockOrders.json'
 
 const chartConfig = {
   profit: {
-    label: "Profit ($)",
+    label: "Profit (₹)",
     color: "#10b981", // Modern emerald color
   },
 }
@@ -57,7 +56,6 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = React.useState(undefined)
   const [mockOrders, setMockOrders] = React.useState([])
 
-  // Calculate metrics
   const today = new Date()
   const yesterday = subDays(today, 1)
   const startOfThisWeek = startOfWeek(today)
@@ -75,7 +73,6 @@ export default function Dashboard() {
 
   const profitChange = yesterdayProfit > 0 ? ((todayProfit - yesterdayProfit) / yesterdayProfit) * 100 : 0
 
-  // Calculate current week based on offset
   const currentWeek = addWeeks(today, currentWeekOffset)
   const weekStart = startOfWeek(currentWeek)
   const weekEnd = endOfWeek(currentWeek)
@@ -89,7 +86,6 @@ export default function Dashboard() {
     },0)
   }
 
-  // Generate chart data for the current week
   const generateChartData = (weekOffset) => {
     const baseWeek = addWeeks(today, weekOffset)
     const start = startOfWeek(baseWeek)
@@ -108,7 +104,6 @@ export default function Dashboard() {
 
   const chartData = generateChartData(currentWeekOffset)
 
-  // Filter orders based on active tab and search
   const filteredOrders = React.useMemo(() => {
     let filtered = mockOrders
 
@@ -138,8 +133,8 @@ export default function Dashboard() {
   React.useEffect(()=>{
     const fetchAllDocuments = async () => {
       const allDocs = [];
-      const dbId = '6810918b0009c28b3b9d';
-      const collectionId = '685586b10032ef98eed5';
+      const dbId = import.meta.env.VITE_APPWRITE_DATABASEID;
+      const collectionId = import.meta.env.VITE_APPWRITE_ORDERS_COLLECTIONID;
       let offset = 0;
       const limit = 100;
     
@@ -168,10 +163,10 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold tracking-tight text-white">RetailEase Dashboard</h1>
             <p className="text-gray-400">Monitor your POS system performance</p>
           </div>
-          <div className="text-sm text-gray-400">{format(today, "EEEE, MMMM d, yyyy")}</div>
+          <div className="text-sm text-white">{format(today, "EEEE, MMMM d, yyyy")}</div>
         </div>
 
-        {/* Metrics Cards */}
+        {/* Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -231,7 +226,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Profit Chart */}
+        {/* Chart */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -279,7 +274,7 @@ export default function Dashboard() {
                           <p className="font-medium text-white">{data.fullDate}</p>
                           <p className="text-sm text-gray-400">
                             Profit:{" "}
-                            <span className="font-medium text-emerald-400">${payload[0].value?.toFixed(2)}</span>
+                            <span className="font-medium text-emerald-400">₹ {payload[0].value?.toFixed(2)}</span>
                           </p>
                         </div>
                       )
@@ -435,7 +430,7 @@ export default function Dashboard() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold text-green-600">
-                              ${getProfit(format(selectedDate, "yyyy-MM-dd"))?.toFixed(2)}
+                              ₹{getProfit(format(selectedDate, "yyyy-MM-dd"))?.toFixed(2)}
                             </div>
                             <p className="text-xs text-muted-foreground">Total profit for this day</p>
                           </CardContent>
@@ -483,9 +478,9 @@ export default function Dashboard() {
                                 >
                                   <TableCell className="font-medium text-white">{order.$id}</TableCell>
                                   <TableCell className="text-gray-300">{order.cusName}</TableCell>
-                                  <TableCell className="text-gray-300">${order.oderValue?.toFixed(2)}</TableCell>
+                                  <TableCell className="text-gray-300">₹{order.oderValue?.toFixed(2)}</TableCell>
                                   <TableCell className="text-emerald-400 font-medium">
-                                    ${order.profit?.toFixed(2)}
+                                  ₹{order.profit?.toFixed(2)}
                                   </TableCell>
                                   <TableCell>
                                     <Badge
@@ -538,7 +533,7 @@ export default function Dashboard() {
                                 {format((order.date), "MMM d, yyyy")}
                               </TableCell>
                               <TableCell className="text-gray-300">{order.cusName}</TableCell>
-                              <TableCell className="text-gray-300">$ {order.oderValue}</TableCell>
+                              <TableCell className="text-gray-300">₹{order.oderValue}</TableCell>
                               <TableCell className="text-emerald-400 font-medium">₹{order.profit?.toFixed(2)}</TableCell>
                               <TableCell>
                                 <Badge
@@ -591,8 +586,8 @@ export default function Dashboard() {
                     <h3 className="font-semibold mb-2 text-white">Order Summary</h3>
                     <div className="space-y-1 text-sm">
                       <p className="text-gray-300">
-                        <span className="font-medium text-white">Order Value:</span> ₹
-                        {selectedOrder.oderValue}
+                        <span className="font-medium text-white">Order Value:</span> 
+                        ₹{selectedOrder.oderValue}
                       </p>
                       <p className="text-gray-300">
                         <span className="font-medium text-white">Profit:</span>{" "}
@@ -628,7 +623,7 @@ export default function Dashboard() {
                             {/* <TableCell className="font-mono text-sm text-gray-300">{item.barcode}</TableCell> */}
                             <TableCell className="text-gray-300">{item.quantity}</TableCell>
                             <TableCell className="text-gray-300">₹{item.price}</TableCell>
-                            <TableCell className="font-medium text-white">${(item.quantity * item.price)?.toFixed(2)}</TableCell>
+                            <TableCell className="font-medium text-white">₹{(item.quantity * item.price)?.toFixed(2)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

@@ -10,8 +10,8 @@ export const AllProductsProvider = ({ children }) => {
     async function fetchAllProducts() {
       try {
         const response = await databases.listDocuments(
-          '6810918b0009c28b3b9d',
-          '6810919e003221b85c31'
+          import.meta.env.VITE_APPWRITE_DATABASEID,
+          import.meta.env.VITE_APPWRITE_PRODUCTS_COLLECTIONID
         );
         setData(response.documents);
         console.log('Fetched products:', response.documents);

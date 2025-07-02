@@ -71,8 +71,8 @@ const AddProduct = () => {
   const handleSendToDatabase = async () => {
     try {
       const res = await databases.createDocument(
-        '6810918b0009c28b3b9d',
-        '6810919e003221b85c31',
+        import.meta.env.VITE_APPWRITE_DATABASEID,
+        import.meta.env.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
         'unique()',
         productData
       );

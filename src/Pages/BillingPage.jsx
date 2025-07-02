@@ -264,8 +264,8 @@ export default function BillingPage() {
         }
 
         await databases.updateDocument(
-          '6810918b0009c28b3b9d',
-          '6810919e003221b85c31',
+          import.meta.env.VITE_APPWRITE_DATABASEID,
+          import.meta.env.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
           product.$id,
           {
             stock: newStock
@@ -274,8 +274,8 @@ export default function BillingPage() {
       }
 
       await databases.createDocument(
-        '6810918b0009c28b3b9d',
-        '685586b10032ef98eed5',
+        import.meta.env.VITE_APPWRITE_DATABASEID,
+        import.meta.env.VITE_APPWRITE_ORDERS_COLLECTIONID,
         'unique()',
         {
           'oderValue': totalBill,
@@ -428,10 +428,10 @@ export default function BillingPage() {
       `Thank you for shopping with us!`
 
     // Format the phone number (remove any spaces or special characters)
-    const phoneNumber = cusMobNum.replace(/[^0-9]/g, '')
+    // const phoneNumber = cusMobNum.replace(/[^0-9]/g, '')
     
     // Create WhatsApp URL with the message
-    const whatsappUrl = `https://wa.me/+91${phoneNumber}?text=${encodeURIComponent(billMessage)}`
+    const whatsappUrl = `https://wa.me/+91${cusMobNum}?text=${encodeURIComponent(billMessage)}`
     
     // Open WhatsApp in a new tab
     window.open(whatsappUrl, '_blank')
@@ -584,7 +584,7 @@ export default function BillingPage() {
                 ? 'text-white' 
                 : 'text-blue-600 group-hover:text-blue-700'
             }`}>
-              ₹{product.price.toFixed(2)}
+              ₹ {product.price.toFixed(2)}
             </span>
             {product.mrp && product.mrp > product.price && (
               <span className={`text-xs line-through transition-colors duration-300 ${
