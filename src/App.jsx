@@ -22,7 +22,7 @@ function App() {
 function AppContent() { 
   const location = useLocation();
 
-  const noNavbarPaths = ['/dash']; 
+  const noNavbarPaths = ['/dashboard']; 
 
   return (
     <>
@@ -32,7 +32,7 @@ function AppContent() {
         <Route path="/admin/addproduct" element={<AddProduct/> }/>
         <Route path="/admin/productlist" element={<ProductList/> }/>
         <Route path="/admin/scanproduct" element={<ScanProduct/> }/>
-        <Route path="/dash" element={<Dashboard/> }/>
+        <Route path="/dashboard" element={<Dashboard/> }/>
       </Routes>
     </>
   );
