@@ -44,8 +44,9 @@ const ProductList = () => {
   const [productToEdit, setProductToEdit] = useState(null);
   const [editFormData, setEditFormData] = useState({
     productName: '',
-    barcodeNumber: '',
+    barcode: '',
     price: '',
+    costPrice: '',
     stock: 0.0
   });
   const {data, setData} = useContext(allProductsContext);
@@ -67,8 +68,9 @@ const ProductList = () => {
     setProductToEdit(product);
     setEditFormData({
       productName: product.productName || '',
-      barcodeNumber: product.barcodeNumber || '',
+      barcode: product.barcode || '',
       price: product.price || '',
+      costPrice: product.costPrice || '',
       stock: product.stock || ''
     });
     setEditDialogOpen(true);
@@ -86,8 +88,8 @@ const ProductList = () => {
         alert('Product name is required');
         return;
       }
-      if (!editFormData.barcodeNumber) {
-        alert('Barcode number is required');
+      if (!editFormData.barcode) {
+        alert('Barcode is required');
         return;
       }
       if (!editFormData.price || editFormData.price <= 0) {
@@ -102,8 +104,9 @@ const ProductList = () => {
       // Prepare the data for update
       const updateData = {
         productName: editFormData.productName.trim(),
-        barcodeNumber: parseInt(editFormData.barcodeNumber),
+        barcode: editFormData.barcode,
         price: parseFloat(editFormData.price),
+        costPrice: parseFloat(editFormData.costPrice),
         stock: parseFloat(editFormData.stock) || 0.0
       };
 
@@ -126,8 +129,9 @@ const ProductList = () => {
         setProductToEdit(null);
         setEditFormData({
           productName: '',
-          barcodeNumber: '',
+          barcode: '',
           price: '',
+          costPrice: '',
           stock: 0.0
         });
 
@@ -163,21 +167,21 @@ const ProductList = () => {
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white/40 mt-10 border rounded-xl shadow-xl">
       <h1 className="text-2xl font-semibold mb-4 text-gray-800">Product List</h1>
-      <div className='flex justify-between items-center h-16'>
+      <div className='flex justify-between items-center h-16 mb-6'>
         <div className='text-gray-700 font-semibold min-w-[250px]'>Total Products in inventory : {data.length}</div>
-        <div className='text-gray-700 font-semibold' ><ComboboxDemo frameworks={data} /></div>
-      </div>
-      <div className='text-gray-700 h-16 font-semibold flex justify-end items-center'>
-        <Link to='/admin/addproduct' className={cn(buttonVariants({ variant: "outline" }), 'w-48')}>Add Product</Link>
+        {/* <div className='text-gray-700 font-semibold' ><ComboboxDemo frameworks={data} /></div> */}
+        <div className='text-gray-700 h-16 font-semibold flex justify-end items-center'>
+          <Link to='/admin/addproduct' className={cn(buttonVariants({ variant: "outline" }), 'w-48')}>Add Product</Link>
+        </div>
       </div>
       <Table className="rounded-xl overflow-hidden shadow-md border border-gray-200">
         <TableCaption className="text-gray-500">A list of your products.</TableCaption>
         <TableHeader className="bg-gray-100">
           <TableRow>
             <TableHead className="w-64 text-gray-700">Product Name</TableHead>
-            <TableHead className="w-36 text-gray-700">Barcode Number</TableHead>
+            <TableHead className="w-36 text-gray-700">Barcode</TableHead>
             <TableHead className="max-w-36 text-right text-gray-700">Price (₹)</TableHead>
-            <TableHead className="max-w-36 text-right text-gray-700">Buying Price (₹)</TableHead>
+            <TableHead className="max-w-36 text-right text-gray-700">Cost Price (₹)</TableHead>
             <TableHead className="w-24 text-center text-gray-700">Stocks</TableHead>
             <TableHead className="w-32 text-center text-gray-700">Actions</TableHead>
           </TableRow>
@@ -186,9 +190,9 @@ const ProductList = () => {
           {data.map((d, index) => (
             <TableRow key={index} className="hover:bg-gray-50 transition-colors">
               <TableCell className="w-64 font-medium text-gray-900">{d.productName}</TableCell>
-              <TableCell className="w-36 text-gray-700">{d.barcodeNumber}</TableCell>
+              <TableCell className="w-36 text-gray-700">{d.barcode}</TableCell>
               <TableCell className="w-36 text-right text-gray-800 font-semibold">{d.price}</TableCell>
-              <TableCell className="w-36 text-right text-gray-800 font-semibold">{d.buyingPrice}</TableCell>
+              <TableCell className="w-36 text-right text-gray-800 font-semibold">{d.costPrice}</TableCell>
               <TableCell className="w-24 text-center">
                 <span className={`px-2 py-1 rounded-full text-sm font-medium ${
                   d.stock > 10 
@@ -276,12 +280,23 @@ const ProductList = () => {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-barcode" className="text-sm font-medium text-gray-700">Barcode Number</Label>
+              <Label htmlFor="edit-barcode" className="text-sm font-medium text-gray-700">Barcode</Label>
               <Input
                 id="edit-barcode"
+                type="text"
+                value={editFormData.barcode}
+                onChange={(e) => setEditFormData({...editFormData, barcode: e.target.value})}
+                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-cost-price" className="text-sm font-medium text-gray-700">Cost Price</Label>
+              <Input
+                id="edit-cost-price"
                 type="number"
-                value={editFormData.barcodeNumber}
-                onChange={(e) => setEditFormData({...editFormData, barcodeNumber: e.target.value})}
+                step="0.01"
+                value={editFormData.costPrice}
+                onChange={(e) => setEditFormData({...editFormData, costPrice: e.target.value})}
                 className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
@@ -317,8 +332,9 @@ const ProductList = () => {
                 setProductToEdit(null);
                 setEditFormData({
                   productName: '',
-                  barcodeNumber: '',
+                  barcode: '',
                   price: '',
+                  costPrice: '',
                   stock: 0.0
                 });
               }}

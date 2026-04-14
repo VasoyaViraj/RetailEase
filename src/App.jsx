@@ -3,7 +3,9 @@ import AddProduct from './Pages/Admin/AddProduct';
 import ProductList from './Pages/Admin/ProductList';
 import ScanProduct from './Pages/Admin/ScanProduct';
 import Dashboard from './Pages/Admin/Dashboard';
+import LedgerDashboard from './Pages/Admin/LedgerDashboard';
 import Login from './Pages/Auth/Login';
+import Profile from './Pages/Customer/Profile';
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Navbarr from './components/Navbarr';
 import { AllProductsProvider } from './contexts/allProductsContext';
@@ -63,13 +65,16 @@ function AppContent() {
             <Dashboard/>
           </RequireRole>
         } />
+        <Route path="/admin/ledger" element={
+          <RequireRole roles={['cashier','owner']}>
+            <LedgerDashboard/>
+          </RequireRole>
+        } />
 
         {/* Customer routes */}
         <Route path="/customer/profile" element={
           <RequireCustomerAuth>
-            <div className="flex items-center justify-center h-screen">
-              <p className="text-gray-500">Customer Profile — coming in Commit 7</p>
-            </div>
+            <Profile />
           </RequireCustomerAuth>
         } />
       </Routes>

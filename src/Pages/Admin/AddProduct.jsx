@@ -23,11 +23,11 @@ const AddProduct = () => {
   }, []);
 
   let [productData, setProductData] = useState({
-    "productName" : "",
-    "barcodeNumber" : null,
-    "buyingPrice" : null,
-    "price" : null,
-    "stock" : null
+    productName: "",
+    barcode: "",
+    costPrice: "",
+    price: "",
+    stock: ""
   })
 
   const handleClick = () => {
@@ -68,20 +68,36 @@ const AddProduct = () => {
     setTimeout(shoot, 200);
   };
 
-  const handleSendToDatabase = async () => {
+  const handleSendToDatabase = async (e) => {
+    e.preventDefault();
     try {
+      const payload = {
+        productName: productData.productName,
+        barcode: productData.barcode || Math.floor(1000000000 + Math.random() * 9000000000).toString(),
+        price: parseFloat(productData.price) || 0,
+        costPrice: parseFloat(productData.costPrice) || 0,
+        stock: parseInt(productData.stock, 10) || 0,
+      };
+
       const res = await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASEID,
         import.meta.env.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
         'unique()',
-        productData
+        payload
       );
+      
       console.log(res);
   
       if (res) {
         handleClick();
         setTimeout(() => {
-          window.location.reload()
+          setProductData({
+            productName: "",
+            barcode: "",
+            costPrice: "",
+            price: "",
+            stock: ""
+          });
         }, 1500);
       }
     } catch (e) {
@@ -90,82 +106,88 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen-48" >
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="font-bold border-b-2 pb-3"  >Add Product</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form>
+    <div className="flex justify-center items-center h-screen-48 swiss-dots" >
+      <div className="w-full max-w-sm swiss-card bg-white">
+        <div className="p-4 border-b-2 border-black">
+          <h2 className="text-xl font-black uppercase tracking-tighter text-black" >Add Product</h2>
+        </div>
+        <div className="p-6">
+          <form onSubmit={handleSendToDatabase}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Product Name</Label>
-                <Input
+                <label className="text-xs font-bold uppercase tracking-widest text-black" htmlFor="productName">Product Name</label>
+                <input
                   id="productName"
+                  className="swiss-input p-3"
                   type="text"
                   placeholder="Enter Product Name"
                   value={productData.productName}
-                  onChange={(e) => setProductData({...productData, "productName" : e.target.value})}
+                  onChange={(e) => setProductData({...productData, productName : e.target.value})}
                   required
                 />
               </div>
               <div className="grid gap-2">
-                  <Label htmlFor="password">Price</Label>
-                  <Input
+                  <label className="text-xs font-bold uppercase tracking-widest text-black" htmlFor="price">Price</label>
+                  <input
                     id="price"
+                    className="swiss-input p-3"
                     type="number"
+                    step="0.01"
                     placeholder="Enter Product Price"
-                    inputMode="numeric"
+                    inputMode="decimal"
                     value={productData.price}
-                    onChange={(e) => setProductData({...productData, "price" : parseFloat(e.target.value)})}
+                    onChange={(e) => setProductData({...productData, price : e.target.value})}
                     required
                   />
               </div>
               <div className="grid gap-2">
-                  <Label htmlFor="password">Buying Price</Label>
-                  <Input
-                    id="buyingPrice"
+                  <label className="text-xs font-bold uppercase tracking-widest text-black" htmlFor="costPrice">Cost Price</label>
+                  <input
+                    id="costPrice"
+                    className="swiss-input p-3"
                     type="number"
-                    placeholder="Enter buying Price"
-                    inputMode="numeric"
-                    value={productData.buyingPrice}
-                    onChange={(e) => setProductData({...productData, "buyingPrice" : parseFloat(e.target.value)})}
+                    step="0.01"
+                    placeholder="Enter cost price"
+                    inputMode="decimal"
+                    value={productData.costPrice}
+                    onChange={(e) => setProductData({...productData, costPrice : e.target.value})}
                     required
                   />
               </div>
               <div className="grid gap-2">
-                  <Label htmlFor="password">Barcode Number</Label>
-                  <Input
-                    id="barcodeNumber"
+                  <label className="text-xs font-bold uppercase tracking-widest text-black" htmlFor="barcode">Barcode</label>
+                  <input
+                    id="barcode"
+                    className="swiss-input p-3"
                     type="text"
-                    placeholder="Enter Barcode Number"
-                    inputMode="numeric"
-                    value={productData.barcodeNumber}
-                    onChange={(e) => setProductData({...productData, "barcodeNumber" : parseInt(e.target.value)})}
+                    placeholder="Enter Barcode (optional)"
+                    value={productData.barcode}
+                    onChange={(e) => setProductData({...productData, barcode : e.target.value})}
                   />
               </div>
               <div className="grid gap-2">
-                  <Label htmlFor="stock">Total Stocks</Label>
-                  <Input
+                  <label className="text-xs font-bold uppercase tracking-widest text-black" htmlFor="stock">Total Stocks</label>
+                  <input
                     id="stock"
+                    className="swiss-input p-3"
                     type="number"
-                    placeholder="Enter total Stocks in store"
+                    placeholder="Enter total Stocks"
                     inputMode="numeric"
                     min="0"
                     value={productData.stock}
-                    onChange={(e) => setProductData({...productData, "stock" : parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setProductData({...productData, stock : e.target.value})}
                     required
                   />
               </div>
             </div>
+            <div className="mt-8 border-t-2 border-black pt-4">
+              <button type="submit" className="w-full py-4 swiss-btn-primary">
+                Add to Database
+              </button>
+            </div>
           </form>
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button type="submit" onClick={handleSendToDatabase} className="w-full">
-            Add to Database
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

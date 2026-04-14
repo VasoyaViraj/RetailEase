@@ -155,111 +155,109 @@ export default function Dashboard() {
   },[])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-6">
+    <div className="min-h-screen bg-white swiss-dots p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between border-b-4 border-black pb-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">RetailEase Dashboard</h1>
-            <p className="text-gray-400">Monitor your POS system performance</p>
+            <h1 className="text-4xl font-black uppercase tracking-tighter text-black">RetailEase Dashboard</h1>
+            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-2">Monitor your POS system performance</p>
           </div>
-          <div className="text-sm text-white">{format(today, "EEEE, MMMM d, yyyy")}</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-black border-2 border-black px-4 py-2 bg-white">
+            {format(today, "EEEE, MMMM d, yyyy")}
+          </div>
         </div>
 
         {/* Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Today's Orders</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl text-white font-bold">{todayOrders.length}</div>
-              <p className="text-xs text-white/40 ">
+          <div className="swiss-card p-4 flex flex-col justify-between">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-sm font-black uppercase tracking-widest text-black">Today's Orders</h3>
+              <ShoppingCart className="h-5 w-5 text-[#FF3000]" />
+            </div>
+            <div>
+              <div className="text-4xl font-black text-black">{todayOrders.length}</div>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">
                 {todayOrders.length > yesterdayOrders.length ? "+" : ""}
                 {todayOrders.length - yesterdayOrders.length} from yesterday
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Today's Profit</CardTitle>
-              <IndianRupeeIcon className="h-4 w-4 text-white/40" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">₹{todayProfit?.toFixed(2)}</div>
-              <p className="text-xs text-gray-400 flex items-center">
+          <div className="swiss-card p-4 flex flex-col justify-between">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-sm font-black uppercase tracking-widest text-black">Today's Profit</h3>
+              <IndianRupeeIcon className="h-5 w-5 text-[#FF3000]" />
+            </div>
+            <div>
+              <div className="text-4xl font-black text-black">₹{todayProfit?.toFixed(2)}</div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center mt-1">
                 {profitChange >= 0 ? (
-                  <TrendingUp className="h-3 w-3 text-emerald-400 mr-1" />
+                  <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
                 ) : (
-                  <TrendingDown className="h-3 w-3 text-red-400 mr-1" />
+                  <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
                 )}
-                <span className={profitChange >= 0 ? "text-emerald-400" : "text-red-400"}>
+                <span className={profitChange >= 0 ? "text-green-600" : "text-red-600"}>
                   {Math.abs(profitChange)?.toFixed(1)}%
                 </span>{" "}
-                from yesterday
+                <span className="ml-1">from yesterday</span>
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">This Week</CardTitle>
-              <CalendarDays className="h-4 w-4 text-white/40" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl text-white font-bold">₹{thisWeekProfit.toFixed(2)}</div>
-              <p className="text-xs text-white/40">{thisWeekOrders.length} orders</p>
-            </CardContent>
-          </Card>
+          <div className="swiss-card p-4 flex flex-col justify-between">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-sm font-black uppercase tracking-widest text-black">This Week</h3>
+              <CalendarDays className="h-5 w-5 text-[#FF3000]" />
+            </div>
+            <div>
+              <div className="text-4xl font-black text-black">₹{thisWeekProfit.toFixed(2)}</div>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{thisWeekOrders.length} orders</p>
+            </div>
+          </div>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">This Month</CardTitle>
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl text-white font-bold">₹{thisMonthProfit.toFixed(2)}</div>
-              <p className="text-xs text-white/40">{thisMonthOrders.length} orders</p>
-            </CardContent>
-          </Card>
+          <div className="swiss-card p-4 flex flex-col justify-between">
+            <div className="flex flex-row items-center justify-between pb-2">
+              <h3 className="text-sm font-black uppercase tracking-widest text-black">This Month</h3>
+              <CalendarDays className="h-5 w-5 text-[#FF3000]" />
+            </div>
+            <div>
+              <div className="text-4xl font-black text-black">₹{thisMonthProfit.toFixed(2)}</div>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{thisMonthOrders.length} orders</p>
+            </div>
+          </div>
         </div>
 
         {/* Chart */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
+        <div className="swiss-card">
+          <div className="border-b-2 border-black p-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Profit Trend</CardTitle>
-                <CardDescription className="text-gray-400">
+                <h2 className="text-xl font-black uppercase tracking-tighter text-black">Profit Trend</h2>
+                <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">
                   Daily profit for week of {format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
-                </CardDescription>
+                </p>
               </div>
               <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => setCurrentWeekOffset(currentWeekOffset - 1)}
-                  className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                  className="px-4 py-2 bg-white text-black font-bold uppercase tracking-widest text-[10px] border-2 border-black hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-1"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Prev Week
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
+                </button>
+                <button
                   onClick={() => setCurrentWeekOffset(currentWeekOffset + 1)}
                   disabled={currentWeekOffset >= 0}
-                  className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                  className="px-4 py-2 bg-white text-black font-bold uppercase tracking-widest text-[10px] border-2 border-black hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                 >
                   Next Week
                   <ChevronRight className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="p-4 bg-white">
             <ChartContainer config={chartConfig} className="h-[300px]">
               <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -296,60 +294,60 @@ export default function Dashboard() {
                 />
               </BarChart>
             </ChartContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Orders History */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">Orders History</CardTitle>
-            <CardDescription className="text-gray-400">View and manage all your orders</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+        <div className="swiss-card bg-white">
+          <div className="border-b-2 border-black p-4">
+            <h2 className="text-xl font-black uppercase tracking-tighter text-black">Orders History</h2>
+            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">View and manage all your orders</p>
+          </div>
+          <div className="p-4">
+            <div className="space-y-6">
               {/* Search and Filters */}
               <div className="flex items-center space-x-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
+                  <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <input
                     placeholder="Search orders..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400"
+                    className="pl-10 w-full p-3 swiss-input"
                   />
                 </div>
               </div>
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="bg-gray-800 border-gray-700">
+                <TabsList className="bg-[#F2F2F2] border-2 border-black rounded-none p-1 gap-1">
                   <TabsTrigger
                     value="all"
-                    className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+                    className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-bold uppercase tracking-widest text-xs transition-colors"
                   >
                     All Orders
                   </TabsTrigger>
                   <TabsTrigger
                     value="today"
-                    className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+                    className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-bold uppercase tracking-widest text-xs transition-colors"
                   >
                     Today
                   </TabsTrigger>
                   <TabsTrigger
                     value="yesterday"
-                    className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+                    className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-bold uppercase tracking-widest text-xs transition-colors"
                   >
                     Yesterday
                   </TabsTrigger>
                   <TabsTrigger
                     value="daily"
-                    className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+                    className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-bold uppercase tracking-widest text-xs transition-colors"
                   >
                     Daily Profit
                   </TabsTrigger>
                   <TabsTrigger
                     value="custom"
-                    className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+                    className="rounded-none data-[state=active]:bg-black data-[state=active]:text-white font-bold uppercase tracking-widest text-xs transition-colors"
                   >
                     Custom Range
                   </TabsTrigger>
@@ -509,39 +507,36 @@ export default function Dashboard() {
                     activeTab === "today" ||
                     activeTab === "yesterday" ||
                     activeTab === "custom") && (
-                    <div className="rounded-md border border-gray-800 bg-gray-900">
+                    <div className="border-2 border-black bg-white overflow-hidden">
                       <Table>
-                        <TableHeader>
-                          <TableRow className="border-gray-800 hover:bg-gray-800/50">
-                            <TableHead className="text-gray-300">Order ID</TableHead>
-                            <TableHead className="text-gray-300">Date</TableHead>
-                            <TableHead className="text-gray-300">Customer Name</TableHead>
-                            <TableHead className="text-gray-300">Order Value</TableHead>
-                            <TableHead className="text-gray-300">Profit</TableHead>
-                            <TableHead className="text-gray-300">Status</TableHead>
+                        <TableHeader className="bg-black text-white">
+                          <TableRow className="border-b-2 border-black hover:bg-black">
+                            <TableHead className="text-white font-black uppercase tracking-widest text-xs">Order ID</TableHead>
+                            <TableHead className="text-white font-black uppercase tracking-widest text-xs">Date</TableHead>
+                            <TableHead className="text-white font-black uppercase tracking-widest text-xs">Customer Name</TableHead>
+                            <TableHead className="text-white font-black uppercase tracking-widest text-xs border-r border-gray-600">Order Value</TableHead>
+                            <TableHead className="text-white font-black uppercase tracking-widest text-xs">Profit</TableHead>
+                            <TableHead className="text-white font-black uppercase tracking-widest text-xs">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredOrders.map((order) => (
                             <TableRow
                               key={order.$id}
-                              className="cursor-pointer hover:bg-gray-800/50 border-gray-800"
+                              className="cursor-pointer hover:bg-[#F2F2F2] border-b border-black"
                               onClick={() => setSelectedOrder(order)}
                             >
-                              <TableCell className="font-medium text-white">{order.$id}</TableCell>
-                              <TableCell className="text-gray-300">
+                              <TableCell className="font-bold text-black uppercase">{order.$id}</TableCell>
+                              <TableCell className="text-black font-medium">
                                 {format((order.date), "MMM d, yyyy")}
                               </TableCell>
-                              <TableCell className="text-gray-300">{order.cusName}</TableCell>
-                              <TableCell className="text-gray-300">₹{order.oderValue}</TableCell>
-                              <TableCell className="text-emerald-400 font-medium">₹{order.profit?.toFixed(2)}</TableCell>
+                              <TableCell className="text-black font-bold">{order.cusName}</TableCell>
+                              <TableCell className="text-black font-medium border-r border-gray-200">₹{order.oderValue}</TableCell>
+                              <TableCell className="text-[#FF3000] font-black">₹{order.profit?.toFixed(2)}</TableCell>
                               <TableCell>
-                                <Badge
-                                  variant="secondary"
-                                  className="bg-emerald-900 text-emerald-300 border-emerald-800"
-                                >
+                                <span className="px-2 py-1 bg-black text-white text-[10px] uppercase font-bold tracking-widest">
                                   Completed
-                                </Badge>
+                                </span>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -552,78 +547,75 @@ export default function Dashboard() {
                 </TabsContent>
               </Tabs>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Order Details Dialog */}
         <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-800 text-white">
-            <DialogHeader>
-              <DialogTitle className="text-white">Order Details - {selectedOrder?.$id}</DialogTitle>
-              <DialogDescription className="text-gray-400">Complete information about this order</DialogDescription>
+          <DialogContent className="swiss-card max-w-4xl max-h-[80vh] overflow-y-auto p-0 rounded-none bg-white border-2 border-black">
+            <DialogHeader className="border-b-2 border-black p-4 sticky top-0 bg-white z-10">
+              <DialogTitle className="text-xl font-black uppercase tracking-widest text-[#FF3000]">Order Details - {selectedOrder?.$id}</DialogTitle>
             </DialogHeader>
 
             {selectedOrder && (
-              <div className="space-y-6">
+              <div className="p-6 space-y-6">
                 {/* Customer Information */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="font-semibold mb-2 text-white">Customer Information</h3>
-                    <div className="space-y-1 text-sm">
-                      <p className="text-gray-300">
-                        <span className="font-medium text-white">Name:</span> {selectedOrder.cusName}
+                  <div className="border-2 border-black p-4">
+                    <h3 className="font-black uppercase tracking-widest text-xs border-b-2 border-black pb-2 mb-2">Customer Information</h3>
+                    <div className="space-y-1 text-sm font-bold uppercase tracking-widest text-gray-600">
+                      <p>
+                        <span className="text-black">Name:</span> {selectedOrder.cusName}
                       </p>
-                      <p className="text-gray-300">
-                        <span className="font-medium text-white">Mobile:</span> {selectedOrder.cusMobNum}
+                      <p>
+                        <span className="text-black">Mobile:</span> {selectedOrder.cusMobNum}
                       </p>
-                      <p className="text-gray-300">
-                        <span className="font-medium text-white">Date:</span>{" "}
+                      <p>
+                        <span className="text-black">Date:</span>{" "}
                         {format((selectedOrder.date), "MMMM d, yyyy")}
                       </p>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold mb-2 text-white">Order Summary</h3>
-                    <div className="space-y-1 text-sm">
-                      <p className="text-gray-300">
-                        <span className="font-medium text-white">Order Value:</span> 
+                  <div className="border-2 border-black p-4">
+                    <h3 className="font-black uppercase tracking-widest text-xs border-b-2 border-black pb-2 mb-2">Order Summary</h3>
+                    <div className="space-y-1 text-sm font-bold uppercase tracking-widest text-gray-600">
+                      <p>
+                        <span className="text-black">Order Value:</span> 
                         ₹{selectedOrder.oderValue}
                       </p>
-                      <p className="text-gray-300">
-                        <span className="font-medium text-white">Profit:</span>{" "}
-                        <span className="text-emerald-400">₹{selectedOrder.profit?.toFixed(2)}</span>
+                      <p>
+                        <span className="text-black">Profit:</span>{" "}
+                        <span className="text-[#FF3000]">₹{selectedOrder.profit?.toFixed(2)}</span>
                       </p>
-                      <p className="text-gray-300">
-                        <span className="font-medium text-white">Items:</span> {selectedOrder.orderItems.length}
+                      <p>
+                        <span className="text-black">Items:</span> {selectedOrder.orderItems.length}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <Separator className="bg-gray-800" />
-
                 {/* Order Items */}
-                <div>
-                  <h3 className="font-semibold mb-4 text-white">Order Items</h3>
-                  <div className="rounded-md border border-gray-800 bg-gray-900">
+                <div className="border-2 border-black">
+                  <div className="bg-black text-white p-3 border-b-2 border-black">
+                    <h3 className="font-black uppercase tracking-widest text-xs">Order Items</h3>
+                  </div>
+                  <div className="overflow-auto bg-white">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-gray-800">
-                          <TableHead className="text-gray-300">Product Name</TableHead>
-                          {/* <TableHead className="text-gray-300">Barcode</TableHead> */}
-                          <TableHead className="text-gray-300">Quantity</TableHead>
-                          <TableHead className="text-gray-300">Price</TableHead>
-                          <TableHead className="text-gray-300">Subtotal</TableHead>
+                        <TableRow className="border-b-2 border-black hover:bg-transparent">
+                          <TableHead className="text-black font-black uppercase tracking-widest text-xs">Product Name</TableHead>
+                          <TableHead className="text-black font-black uppercase tracking-widest text-xs">Quantity</TableHead>
+                          <TableHead className="text-black font-black uppercase tracking-widest text-xs">Price</TableHead>
+                          <TableHead className="text-black font-black uppercase tracking-widest text-xs">Subtotal</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {JSON.parse(selectedOrder.orderItems).map((item, index) => (
-                          <TableRow key={index} className="border-gray-800">
-                            <TableCell className="font-medium text-white">{item.productName}</TableCell>
-                            {/* <TableCell className="font-mono text-sm text-gray-300">{item.barcode}</TableCell> */}
-                            <TableCell className="text-gray-300">{item.quantity}</TableCell>
-                            <TableCell className="text-gray-300">₹{item.price}</TableCell>
-                            <TableCell className="font-medium text-white">₹{(item.quantity * item.price)?.toFixed(2)}</TableCell>
+                          <TableRow key={index} className="border-b border-black hover:bg-[#F2F2F2]">
+                            <TableCell className="font-bold text-black uppercase">{item.productName}</TableCell>
+                            <TableCell className="font-medium text-black">{item.quantity}</TableCell>
+                            <TableCell className="font-medium text-black">₹{item.price}</TableCell>
+                            <TableCell className="font-black text-[#FF3000]">₹{(item.quantity * item.price)?.toFixed(2)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -632,10 +624,16 @@ export default function Dashboard() {
                 </div>
 
                 {/* Order Total */}
-                <div className="flex justify-end">
-                  <div className="text-right space-y-1">
-                    <p className="text-lg font-semibold text-white">Total: ₹{selectedOrder.oderValue?.toFixed(2)}</p>
-                    <p className="text-sm text-emerald-400 font-medium">Profit: ₹{selectedOrder.profit?.toFixed(2)}</p>
+                <div className="flex justify-end pt-4">
+                  <div className="text-right space-y-1 border-t-4 border-black pt-2 min-w-48">
+                    <p className="text-xl font-black text-black uppercase flex justify-between tracking-widest">
+                      <span>Total:</span>
+                      <span>₹{selectedOrder.oderValue?.toFixed(2)}</span>
+                    </p>
+                    <p className="text-sm text-[#FF3000] font-black uppercase tracking-widest flex justify-between">
+                      <span>Profit:</span>
+                      <span>₹{selectedOrder.profit?.toFixed(2)}</span>
+                    </p>
                   </div>
                 </div>
               </div>

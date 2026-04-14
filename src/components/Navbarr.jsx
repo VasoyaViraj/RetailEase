@@ -1,77 +1,83 @@
 import React from 'react'
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
+import { useAuth } from '@/providers/AuthProvider';
 
 const Navbarr = () => {
+    const location = useLocation();
+    const { user, logout } = useAuth();
+
+    const navLinks = [
+        { to: '/', label: 'Billing' },
+        { to: '/admin/addproduct', label: 'Add Product' },
+        { to: '/admin/productlist', label: 'Products' },
+        { to: '/admin/ledger', label: 'Ledger' },
+        { to: '/dashboard', label: 'Dashboard' },
+    ];
+
+    const isActive = (path) => location.pathname === path;
 
     return(
         <>  
           <div className='navDiv h-[80px] flex justify-center items-center w-full px-4'>
-            <header className="flex-1 flex h-12 shrink-0 items-center px-4 md:px-6 shadow-md bg-white rounded-2xl">
+            <header className="flex-1 flex h-14 shrink-0 items-center px-6 md:px-8 bg-white border-b-4 border-black">
             <Sheet>
                 <SheetTrigger asChild>
-                    <Button variant="outline bg-none" size="icon" className="lg:hidden">
+                    <Button variant="outline" size="icon" className="lg:hidden rounded-none border-2 border-black">
                         <MenuIcon className="h-6 w-6" />
                         <span className="sr-only">Toggle navigation menu</span>
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left">
-                <div className="grid gap-2 py-6">
-                    <Link to="/" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>   
-                      Home
-                    </Link>
-                    <Link to="admin/addproduct" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
-                      AddProduct
-                    </Link>
-                    <Link to="admin/productlist" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
-                      ProductList
-                    </Link>
-                    <Link to="dashboard" className="ml-12 flex w-1/2 items-center py-1 text-lg font-semibold border-b-2 border-black" prefetch={false}>
-                      Dashboard
-                    </Link>
+                <SheetContent side="left" className="rounded-none border-r-4 border-black">
+                <div className="grid gap-1 py-6">
+                    {navLinks.map(({ to, label }) => (
+                        <Link
+                            key={to}
+                            to={to}
+                            className={`ml-8 flex items-center py-2 px-4 text-sm font-bold uppercase tracking-wider transition-colors duration-150 ${
+                                isActive(to)
+                                    ? 'bg-black text-white'
+                                    : 'text-black hover:bg-[#F2F2F2]'
+                            }`}
+                        >   
+                          {label}
+                        </Link>
+                    ))}
                 </div>
                 </SheetContent>
             </Sheet>
-            <Link href="#" className="mr-6 hidden lg:flex" prefetch={false}>
-                <MountainIcon className="h-6 w-6" />
-                <span className="sr-only">Acme Inc</span>
+
+            <Link to='/'>
+                <span className='ml-3 font-black text-lg uppercase tracking-tighter'>
+                    RetailEase
+                </span>
             </Link>
-            <Link to='/'><span className='ml-3 font-bold'>RetailEase</span></Link>
-            <nav className="ml-auto hidden lg:flex gap-6">
-                <Link
-                to="/"
-                href="#"
-                className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-                prefetch={false}
-                >
-                Home
-                </Link>
-                <Link
-                to="admin/addproduct"
-                href="#"
-                className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-                prefetch={false}
-                >
-                AddProduct
-                </Link>
-                <Link
-                to="admin/productlist"
-                href="#"
-                className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-                prefetch={false}
-                >
-                ProductList
-                </Link>
-                <Link
-                to="dashboard"
-                href="#"
-                className="group inline-flex h-9 w-max items-center justify-center rounded-md  px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-                prefetch={false}
-                >
-                Dashboard
-                </Link>
+
+            <nav className="ml-auto hidden lg:flex gap-0">
+                {navLinks.map(({ to, label }) => (
+                    <Link
+                        key={to}
+                        to={to}
+                        className={`inline-flex h-14 items-center justify-center px-5 text-xs font-bold uppercase tracking-widest transition-all duration-150 border-b-4 ${
+                            isActive(to)
+                                ? 'border-[#FF3000] text-black'
+                                : 'border-transparent text-gray-600 hover:text-black hover:border-black'
+                        }`}
+                    >
+                        {label}
+                    </Link>
+                ))}
             </nav>
+
+            {user && (
+                <button
+                    onClick={logout}
+                    className="ml-4 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-[#FF3000] transition-colors duration-150"
+                >
+                    Logout
+                </button>
+            )}
             </header>
           </div>
         </>
@@ -88,32 +94,13 @@ function MenuIcon(props) {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeWidth="3"
+        strokeLinecap="square"
+        strokeLinejoin="miter"
       >
         <line x1="4" x2="20" y1="12" y2="12" />
         <line x1="4" x2="20" y1="6" y2="6" />
         <line x1="4" x2="20" y1="18" y2="18" />
-      </svg>
-    )
-}
-
-function MountainIcon(props) {
-    return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
       </svg>
     )
 }

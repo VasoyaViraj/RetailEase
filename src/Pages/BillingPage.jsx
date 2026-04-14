@@ -10,6 +10,8 @@ import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import BarcodeScannerComponent from "react-qr-barcode-scanner"
 import { databases } from "@/services/appwriteConfig"
+import { upsertCustomer } from "@/services/customerService"
+import { createLedgerDue } from "@/services/ledgerService"
 import confetti from "canvas-confetti";
 
 export default function BillingPage() {
@@ -34,6 +36,9 @@ export default function BillingPage() {
 
   let [cusName, setCusName] = useState('')
   let [cusMobNum, setCusMobNum] = useState(null)
+  let [cusEmail, setCusEmail] = useState('')
+  let [customerId, setCustomerId] = useState(null)
+  let [paymentMode, setPaymentMode] = useState('cash')
 
   // Scanner Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -49,7 +54,7 @@ export default function BillingPage() {
   const filteredProducts = products.filter(
     (product) =>
       product.productName.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-      product.barcodeNumber.toString().includes(searchTerm.trim()),
+      (product.barcode && product.barcode.toString().includes(searchTerm.trim())),
   )
 
   useEffect(() => {
@@ -101,7 +106,7 @@ export default function BillingPage() {
 
   // Scanner Functions
   const search = (array, number) => {
-    const foundItem = array.find(item => item.barcodeNumber == number);
+    const foundItem = array.find(item => item.barcode == number);
     if (foundItem) {
       return foundItem;
     } else {
@@ -188,7 +193,7 @@ export default function BillingPage() {
             price: product.price,
             quantity: 1,
             stock: product.stock, // Keep track of available stock
-            buyingPrice : product.buyingPrice
+            costPrice: product.costPrice || 0
           },
         ]
       }
@@ -224,7 +229,7 @@ export default function BillingPage() {
   }
 
   const totalBill = billItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const netProfit = totalBill - billItems.reduce((sum, item) => sum + item.buyingPrice * item.quantity, 0)
+  const netProfit = totalBill - billItems.reduce((sum, item) => sum + item.costPrice * item.quantity, 0)
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
@@ -245,13 +250,16 @@ export default function BillingPage() {
     }
 
     // Validate customer details
-    if (!cusName || !cusMobNum) {
-      setStockError("Please enter customer details")
+    if (!cusName || !cusMobNum || !cusEmail) {
+      setStockError("Please enter customer details (name, mobile & email)")
       setTimeout(() => setStockError(""), 3000)
       return
     }
 
     try {
+      // Upsert customer record
+      const customer = await upsertCustomer({ name: cusName, mobile: String(cusMobNum), email: cusEmail })
+      setCustomerId(customer.$id)
       for (const item of billItems) {
         const product = products.find(p => p.$id === item.$id)
         if (!product) {
@@ -273,19 +281,29 @@ export default function BillingPage() {
         )
       }
 
-      await databases.createDocument(
+      const order = await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASEID,
         import.meta.env.VITE_APPWRITE_ORDERS_COLLECTIONID,
         'unique()',
         {
-          'oderValue': totalBill,
-          'profit' : netProfit,
-          'orderItems' : JSON.stringify(billItems),
-          cusName,
-          cusMobNum,
-          date : new Date().getTime()
+          oderValue: totalBill,
+          profit: netProfit,
+          orderItems: JSON.stringify(billItems),
+          cusName: cusName,
+          cusMobNum: String(cusMobNum),
+          paymentMode: paymentMode,
+          date: new Date().toISOString()
         }
       )
+
+      // If UDHAAR, create ledger due entry
+      if (paymentMode === 'UDHAAR') {
+        await createLedgerDue({
+          orderId: order.$id,
+          customerId: customer.$id,
+          dueAmount: totalBill,
+        })
+      }
 
       // Update local state
       setProducts(prevProducts => 
@@ -305,6 +323,9 @@ export default function BillingPage() {
       setBillItems([])
       setCusName('')
       setCusMobNum('')
+      setCusEmail('')
+      setCustomerId(null)
+      setPaymentMode('cash')
       setSearchTerm('')
 
       handleConfetti()
@@ -334,6 +355,7 @@ export default function BillingPage() {
       doc.setFontSize(11)
       doc.text(`Name: ${cusName}`, 20, 72)
       doc.text(`Phone: ${cusMobNum}`, 20, 78)
+      if (cusEmail) doc.text(`Email: ${cusEmail}`, 20, 84)
 
       // Invoice Details
       doc.setFontSize(12)
@@ -342,6 +364,7 @@ export default function BillingPage() {
       const invoiceNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
       doc.text(`Invoice No: ${invoiceNumber}`, 120, 72)
       doc.text(`Date: ${new Date().toLocaleDateString()}`, 120, 78)
+      doc.text(`Payment: ${paymentMode.toUpperCase()}`, 120, 84)
 
       // Table Header
       const tableColumn = ["Product", "Unit Price", "Quantity", "Subtotal"]
@@ -418,13 +441,17 @@ export default function BillingPage() {
     // Format the bill message
     const billMessage = `*RetailEase - Bill*\n\n` +
       `*Customer:* ${cusName || 'N/A'}\n` +
-      `*Date:* ${new Date().toLocaleDateString()}\n\n` +
+      (cusEmail ? `*Email:* ${cusEmail}\n` : '') +
+      `*Date:* ${new Date().toLocaleDateString()}\n` +
+      `*Payment Mode:* ${paymentMode.toUpperCase()}\n\n` +
       `*Items:*\n` +
       billItems.map(item => 
         `• ${item.productName}\n` +
         `  Qty: ${item.quantity} × ₹${item.price.toFixed(2)} = ₹${(item.quantity * item.price).toFixed(2)}`
       ).join('\n\n') +
-      `\n\n*Total Amount:* ₹${totalBill.toFixed(2)}\n\n` +
+      `\n\n*Total Amount:* ₹${totalBill.toFixed(2)}` +
+      (paymentMode === 'UDHAAR' ? `\n*⚠️ DUE AMOUNT:* ₹${totalBill.toFixed(2)}` : '') +
+      `\n\n` +
       `Thank you for shopping with us!`
 
     // Format the phone number (remove any spaces or special characters)
@@ -648,14 +675,14 @@ export default function BillingPage() {
   )
 
   return (
-    <div className="w-full mx-auto flex p-4 pt-0 h-screen-48">  
+    <div className="w-full mx-auto flex p-4 pt-0 h-screen-48 swiss-dots">  
       <div className="flex-1 flex flex-col lg:flex-row gap-6">
         {/* Product Search Section */}
-        <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
-          <CardHeader className="border-b">
-            <CardTitle className="text-xl font-semibold text-gray-800">Product Search</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="flex-1 min-w-0 swiss-card flex flex-col">
+          <div className="border-b-2 border-black p-4">
+            <h2 className="swiss-label">Product Search</h2>
+          </div>
+          <div className="p-4 space-y-4 flex-1 overflow-auto">
             {stockError && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm">
                 {stockError}
@@ -664,10 +691,10 @@ export default function BillingPage() {
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
+                <input
                   type="search"
                   placeholder="Search products by name or category..."
-                  className="pl-8 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-8 w-full p-2 swiss-input"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   ref={searchInputRef}
@@ -677,11 +704,9 @@ export default function BillingPage() {
               {/* Scanner Dialog Button */}
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
+                  <button 
                     title="Scan Barcode"
-                    className="border-gray-200 hover:bg-gray-50"
+                    className="flex items-center justify-center w-10 h-10 border-2 border-black bg-white hover:bg-[#FF3000] hover:border-[#FF3000] hover:text-white transition-colors"
                     onClick={() => {
                       setIsDialogOpen(true);
                       setOpenCamera(true);
@@ -689,12 +714,11 @@ export default function BillingPage() {
                       hasScanned.current = false;
                     }}
                   >
-                    <Camera className="h-4 w-4 text-gray-600" />
-                  </Button>
+                  </button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="text-center">📦 Scan Product Barcode</DialogTitle>
+                <DialogContent className="swiss-card p-0">
+                  <DialogHeader className="border-b-2 border-black p-4 bg-white">
+                    <DialogTitle className="text-center font-black uppercase tracking-widest text-[#FF3000]">Packages Scans</DialogTitle>
                   </DialogHeader>
                   
                   <div className="space-y-4">
@@ -761,11 +785,11 @@ export default function BillingPage() {
               </Dialog>
             </div>
             
-            <p className="text-xs text-gray-500">
-              Press F1 to focus search. Use ↑/↓ to navigate results and Enter to add to bill.
+            <p className="text-xs text-gray-400 font-bold tracking-widest uppercase">
+              F1 to focus • ↑/↓ to navigate • Enter to add
             </p>
 
-            <div className="border border-gray-200 rounded-lg overflow-auto max-h-[calc(100vh-280px)]">
+            <div className="border-2 border-black bg-white overflow-auto max-h-[calc(100vh-320px)]">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 pr-20 lg:pr-0 overflow-hidden">
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((product, index) => renderProductCard(product, index))
@@ -780,38 +804,48 @@ export default function BillingPage() {
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-500 italic">Click on a product to add it to the bill</p>
-          </CardContent>
-        </Card>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">Click to add</p>
+          </div>
+        </div>
 
         {/* Bill Section */}
-        <Card className="flex-1 min-w-0 bg-white shadow-lg rounded-lg">
-          <CardHeader className="flex justify-between items-center border-b p-6 pt-0">
+        <div className="flex-1 min-w-0 swiss-card flex flex-col">
+          <div className="flex justify-between items-center border-b-2 border-black p-4">
 
             <div className="flex-1 space-y-4">
-              <div className="flex items-start justify-center gap-4 flex-col lg:flex-row">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Customer Name</label>
-                  <Input 
-                    className='w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500' 
+              <div className="flex items-start justify-center gap-4 flex-col lg:flex-row w-full">
+                <div className="flex-1 w-full">
+                  <label className="swiss-label block mb-1">Customer Name</label>
+                  <input 
+                    className='w-full p-2 swiss-input' 
                     placeholder='Enter customer name' 
                     onChange={(e) => setCusName(e.target.value)} 
                     value={cusName}
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Mobile Number</label>
-                  <Input 
-                    className='w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500' 
+                <div className="flex-1 w-full">
+                  <label className="swiss-label block mb-1">Mobile Number</label>
+                  <input 
+                    className='w-full p-2 swiss-input' 
                     placeholder='Enter mobile number' 
                     type='number'
                     onChange={(e) => setCusMobNum(e.target.value)} 
                     value={cusMobNum}
                   />
                 </div>
+                <div className="flex-1 w-full">
+                  <label className="swiss-label block mb-1">Customer Email</label>
+                  <input 
+                    className='w-full p-2 swiss-input' 
+                    placeholder='Enter email address' 
+                    type='email'
+                    onChange={(e) => setCusEmail(e.target.value)} 
+                    value={cusEmail}
+                  />
+                </div>
               </div>
-              <div className="flex gap-2 items-start text-[14px] lg:text-[17px] cursor-pointer">
-                <span className=" text-gray-500">Date:</span>
+              <div className="flex gap-2 items-start text-xs font-bold uppercase tracking-widest cursor-pointer mt-2">
+                <span className="text-gray-400">Date:</span>
                 <span 
                   className=" font-medium text-gray-700" 
                   onClick={() => {
@@ -821,74 +855,85 @@ export default function BillingPage() {
                   {new Date().toLocaleDateString('en-GB')}
                 </span>
               </div>
+
+              {/* Payment Mode Selector */}
+              <div className="mt-4">
+                <label className="swiss-label block mb-2">Payment Mode</label>
+                <div className="flex gap-2">
+                  {['cash', 'online', 'UDHAAR'].map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPaymentMode(mode)}
+                      className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border-2 transition-all duration-150 ${
+                        paymentMode === mode
+                          ? mode === 'UDHAAR'
+                            ? 'bg-[#FF3000] text-white border-[#FF3000]'
+                            : 'bg-black text-white border-black'
+                          : 'bg-white text-black border-black hover:bg-black hover:text-white'
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
 
-            <div className="flex flex-col gap-2 ml-6">
-              <Button 
-                className='w-full bg-neutral-600 hover:bg-neutral-400 flex items-center justify-evenly gap-2'
+            <div className="flex flex-col xl:flex-row gap-2 xl:ml-6 mt-4 xl:mt-0 w-full xl:w-auto">
+              <button 
+                className='px-6 py-3 bg-black text-white font-bold uppercase tracking-widest text-[10px] border-2 border-black hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2'
                 onClick={checkoutFun}
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 15C3 17.8284 3 19.2426 3.87868 20.1213C4.75736 21 6.17157 21 9 21H15C17.8284 21 19.2426 21 20.1213 20.1213C21 19.2426 21 17.8284 21 15" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M12 16V3M12 3L16 7.375M12 3L8 7.375" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
                 Checkout
-              </Button>
-              <Button 
-                className='w-full bg-green-600 hover:bg-green-700 flex items-center justify-evenly gap-2'
+              </button>
+              <button 
+                className='px-6 py-3 bg-[#FF3000] text-white font-bold uppercase tracking-widest text-[10px] border-2 border-[#FF3000] hover:bg-black hover:border-black hover:text-white transition-colors flex items-center justify-center gap-2'
                 onClick={sendWhatsApp}
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
                 WhatsApp
-              </Button>
-              <Button 
-                className='w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-evenly gap-2' 
+              </button>
+              <button 
+                className='px-6 py-3 bg-white text-black font-bold uppercase tracking-widest text-[10px] border-2 border-black hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-2' 
                 onClick={generatePDF}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                </svg>
-                Generate PDF
-              </Button>
+                PDF
+              </button>
             </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+          </div>
+          <div className="p-4 flex-1 flex flex-col overflow-auto">
+            <div className="border-2 border-black bg-white overflow-auto flex-1">
               <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow className="hover:bg-gray-50">
-                    <TableHead className="text-gray-600 font-medium">Product</TableHead>
-                    <TableHead className="text-center text-gray-600 font-medium">Quantity</TableHead>
-                    <TableHead className="text-right text-gray-600 font-medium">Unit Price</TableHead>
-                    <TableHead className="text-right text-gray-600 font-medium">Subtotal</TableHead>
+                <TableHeader className="bg-black text-white">
+                  <TableRow className="hover:bg-black border-b-2 border-black">
+                    <TableHead className="text-white font-bold uppercase tracking-widest text-xs">Product</TableHead>
+                    <TableHead className="text-center text-white font-bold uppercase tracking-widest text-xs">Quantity</TableHead>
+                    <TableHead className="text-right text-white font-bold uppercase tracking-widest text-xs">Price</TableHead>
+                    <TableHead className="text-right text-white font-bold uppercase tracking-widest text-xs">Subtotal</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {billItems.length > 0 ? (
                     billItems.map((item) => (
-                      <TableRow key={item.$id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium py-3 text-gray-700">{item.productName}</TableCell>
+                      <TableRow key={item.$id} className="hover:bg-[#F2F2F2] border-b border-black">
+                        <TableCell className="font-bold py-3 text-black uppercase">{item.productName}</TableCell>
                         <TableCell className="py-3">
                           {renderQuantityInput(item)}
                         </TableCell>
-                        <TableCell className="text-right py-3 text-gray-700">₹{item.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right py-3 text-gray-700 font-medium">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
+                        <TableCell className="text-right py-3 text-black font-medium">₹{item.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right py-3 text-[#FF3000] font-black">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
                         <TableCell className="py-3">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 transition-all duration-200 ease-in-out transform hover:scale-110"
+                          <button
+                            className="flex items-center justify-center h-8 w-8 text-black border-2 border-black hover:bg-[#FF3000] hover:border-[#FF3000] hover:text-white transition-colors"
                             onClick={(e) => {
                               e.stopPropagation()
                               removeFromBill(item.$id)
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -910,15 +955,13 @@ export default function BillingPage() {
             </div>
 
             {billItems.length > 0 && (
-              <div className="mt-6 space-y-4">
-                <div className="border-t pt-4 flex justify-between items-center">
-                  <span className="text-lg font-medium text-gray-700">Total Amount</span>
-                  <span className="text-2xl font-bold text-gray-900">₹{totalBill.toFixed(2)}</span>
-                </div>
+              <div className="mt-4 pt-4 border-t-4 border-black flex justify-between items-center">
+                <span className="font-black uppercase tracking-widest text-[#FF3000]">Total Amount</span>
+                <span className="text-3xl font-black text-black">₹{totalBill.toFixed(2)}</span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

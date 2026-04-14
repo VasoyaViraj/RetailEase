@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/providers/AuthProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,12 +19,6 @@ export default function Login() {
 
     try {
       await login(email, password);
-
-      // After login, getCurrentUser is called inside AuthProvider
-      // We redirect based on what the user is:
-      // Staff users (cashier/owner) → /
-      // Customer users → /customer/profile
-      // For now, we redirect to / and let route guards handle it
       navigate('/', { replace: true });
     } catch (err) {
       console.error('Login failed:', err);
@@ -36,61 +29,71 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-3xl font-bold tracking-tight">
-            RetailEase
-          </CardTitle>
-          <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
+    <div className="flex items-center justify-center min-h-screen bg-white swiss-grid-pattern">
+      <div className="w-full max-w-md p-12 bg-white border-4 border-black">
+        <div className="text-center mb-10">
+          <h1 className="text-5xl font-black uppercase tracking-tighter leading-none">
+            Retail<span className="text-[#FF3000]">Ease</span>
+          </h1>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-gray-500 mt-3">
+            Point of Sale System
+          </p>
+        </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Email
-              </label>
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-              />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-[#FF3000] text-white px-4 py-3 text-sm font-bold uppercase tracking-wide">
+              {error}
             </div>
+          )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Password
-              </label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-[0.15em] text-black mb-2 block">
+              Email
+            </label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoFocus
+              className="w-full px-4 py-3 bg-white border-2 border-black text-black font-medium
+                placeholder:text-gray-400 focus:border-[#FF3000] focus:outline-none transition-colors"
+            />
+          </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-black hover:bg-gray-800 text-white"
-              disabled={loading}
-            >
-              {loading ? 'Signing in…' : 'Sign In'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-[0.15em] text-black mb-2 block">
+              Password
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-white border-2 border-black text-black font-medium
+                placeholder:text-gray-400 focus:border-[#FF3000] focus:outline-none transition-colors"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full h-14 bg-black text-white font-black uppercase tracking-widest text-sm
+              hover:bg-[#FF3000] transition-colors duration-150 disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? 'Signing in…' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-8 pt-6 border-t-2 border-black">
+          <p className="text-xs text-gray-500 text-center uppercase tracking-wider">
+            Staff & Customer Login
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

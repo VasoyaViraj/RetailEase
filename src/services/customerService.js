@@ -35,7 +35,7 @@ export async function upsertCustomer({ name, mobile, email }) {
     name,
     mobile: String(mobile),
     email,
-    createdAt: new Date().toISOString(),
+    userId: "guest_" + ID.unique(),
   });
 }
 
@@ -46,7 +46,7 @@ export async function upsertCustomer({ name, mobile, email }) {
  */
 export async function getCustomerByUserId(appwriteUserId) {
   const res = await databases.listDocuments(DB_ID, CUSTOMERS_COLLECTION, [
-    Query.equal('appwriteUserId', appwriteUserId),
+    Query.equal('userId', appwriteUserId),
     Query.limit(1),
   ]);
   return res.documents.length > 0 ? res.documents[0] : null;

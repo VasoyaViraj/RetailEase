@@ -1,13 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
-
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Swiss Design Tokens ─── */
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -39,86 +40,93 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Swiss custom colors */
+  --color-swiss-red: #FF3000;
+  --color-swiss-muted: #F2F2F2;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0px;
+  --background: #FFFFFF;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F2F2F2;
+  --secondary-foreground: #000000;
+  --muted: #F2F2F2;
+  --muted-foreground: #666666;
+  --accent: #FF3000;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF3000;
+  --border: #000000;
+  --input: #000000;
+  --ring: #FF3000;
+  --chart-1: #000000;
+  --chart-2: #FF3000;
+  --chart-3: #666666;
+  --chart-4: #999999;
+  --chart-5: #CCCCCC;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F2F2F2;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #000000;
+  --sidebar-ring: #FF3000;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #FFFFFF;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F2F2F2;
+  --secondary-foreground: #000000;
+  --muted: #F2F2F2;
+  --muted-foreground: #666666;
+  --accent: #FF3000;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF3000;
+  --border: #000000;
+  --input: #000000;
+  --ring: #FF3000;
+  --chart-1: #000000;
+  --chart-2: #FF3000;
+  --chart-3: #666666;
+  --chart-4: #999999;
+  --chart-5: #CCCCCC;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F2F2F2;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #000000;
+  --sidebar-ring: #FF3000;
 }
 
+/* ─── Base ─── */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 }
 
+/* ─── Swiss Pattern Utilities ─── */
 @layer utilities {
   .h-screen-48 {
     min-height: calc(100vh - 80px);
@@ -129,10 +137,99 @@
     box-sizing: border-box;
   }
   
-  .flexbox{
+  .flexbox {
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
+  }
+
+  /* Grid pattern — 24×24px lines at 3% opacity */
+  .swiss-grid-pattern {
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Dot matrix — 16×16px spacing, 4% opacity */
+  .swiss-dots {
+    background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+
+  /* Diagonal lines — 45°, 10px spacing, 2% opacity */
+  .swiss-diagonal {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 9px,
+      rgba(0, 0, 0, 0.02) 9px,
+      rgba(0, 0, 0, 0.02) 10px
+    );
+  }
+
+  /* Noise texture via SVG filter */
+  .swiss-noise {
+    position: relative;
+  }
+  .swiss-noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.015;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    z-index: 0;
+  }
+
+  /* Swiss section label */
+  .swiss-label {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-[#FF3000];
+  }
+
+  /* Swiss heading */
+  .swiss-heading {
+    @apply text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter leading-none;
+  }
+
+  /* Swiss card — flat, bordered */
+  .swiss-card {
+    @apply bg-white border-2 border-black rounded-none;
+  }
+
+  /* Swiss button primary */
+  .swiss-btn-primary {
+    @apply bg-black text-white font-bold uppercase tracking-wide rounded-none border-2 border-black
+      hover:bg-[#FF3000] hover:border-[#FF3000] transition-colors duration-150;
+  }
+
+  /* Swiss button secondary */
+  .swiss-btn-secondary {
+    @apply bg-white text-black font-bold uppercase tracking-wide rounded-none border-2 border-black
+      hover:bg-black hover:text-white transition-colors duration-150;
+  }
+
+  /* Swiss CTA (red) */
+  .swiss-btn-cta {
+    @apply bg-[#FF3000] text-white font-bold uppercase tracking-wide rounded-none border-2 border-[#FF3000]
+      hover:bg-black hover:border-black transition-colors duration-150;
+  }
+
+  /* Swiss input */
+  .swiss-input {
+    @apply rounded-none border-2 border-black bg-white text-black
+      focus:border-[#FF3000] focus:ring-0 focus:outline-none
+      placeholder:text-gray-400 font-medium;
+  }
+
+  /* Swiss table header */
+  .swiss-table-header {
+    @apply bg-black text-white font-bold uppercase tracking-wide text-xs;
+  }
+
+  /* Swiss badge */
+  .swiss-badge {
+    @apply rounded-none border-2 font-bold uppercase text-xs tracking-wide px-2 py-0.5;
   }
 }
