@@ -80,3 +80,33 @@ export async function settleDueCash({ ledgerDueId, orderId, customerId, settleme
     status: newStatus,
   });
 }
+
+/**
+ * Apply an online (Razorpay) settlement to one or more ledger dues.
+ * Creates a ledgerSettlement doc and updates the ledgerDue status.
+ */
+export async function settleViaRazorpay({ ledgerDueId, orderId, customerId, settlementAmount, razorpayPaymentId, createdBy }) {
+  // 1. Create settlement record
+  await databases.createDocument(DB_ID, SETTLEMENT_COLLECTION, ID.unique(), {
+    ledgerDueId,
+    orderId: orderId || '',
+    customerId,
+    paymentMode: 'online',
+    settlementAmount,
+    stripeSessionId: razorpayPaymentId || '',
+    createdBy: createdBy || 'customer',
+  });
+
+  // 2. Get current due and compute remaining
+  const due = await databases.getDocument(DB_ID, LEDGERDUE_COLLECTION, ledgerDueId);
+  const newPaid = due.paidAmount + settlementAmount;
+  const newRemaining = due.dueAmount - newPaid;
+  const newStatus = newRemaining <= 0 ? 'settled' : 'partiallySettled';
+
+  // 3. Update due
+  return databases.updateDocument(DB_ID, LEDGERDUE_COLLECTION, ledgerDueId, {
+    paidAmount: newPaid,
+    remainingAmount: Math.max(0, newRemaining),
+    status: newStatus,
+  });
+}
