@@ -1,4 +1,4 @@
-import { databases, Query, ID } from './appwriteConfig';
+import { databases, Query, ID, account } from './appwriteConfig';
 
 const DB_ID = import.meta.env.VITE_APPWRITE_DATABASEID;
 const CUSTOMERS_COLLECTION = import.meta.env.VITE_APPWRITE_CUSTOMERS_COLLECTIONID;
@@ -14,7 +14,6 @@ const CUSTOMERS_COLLECTION = import.meta.env.VITE_APPWRITE_CUSTOMERS_COLLECTIONI
 export async function upsertCustomer({ name, mobile, email }) {
   // Try to find existing customer
   const res = await databases.listDocuments(DB_ID, CUSTOMERS_COLLECTION, [
-    Query.equal('email', email),
     Query.equal('mobile', String(mobile)),
     Query.limit(1),
   ]);
@@ -30,12 +29,22 @@ export async function upsertCustomer({ name, mobile, email }) {
     return existing;
   }
 
-  // Create new customer
+  // Create new Appwrite Auth user
+  let authUserId = "guest_" + ID.unique();
+  try {
+    const authEmail = email || `${String(mobile).replace(/[^0-9]/g, '')}@retailease.local`;
+    const userAccount = await account.create(ID.unique(), authEmail, '12345678', name);
+    authUserId = userAccount.$id;
+  } catch (error) {
+    console.error('Failed to create Appwrite Auth user (might already exist or session blocks):', error);
+  }
+
+  // Create new customer document
   return databases.createDocument(DB_ID, CUSTOMERS_COLLECTION, ID.unique(), {
     name,
     mobile: String(mobile),
     email,
-    userId: "guest_" + ID.unique(),
+    userId: authUserId,
   });
 }
 

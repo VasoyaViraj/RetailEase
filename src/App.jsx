@@ -30,7 +30,7 @@ function App() {
 function AppContent() { 
   const location = useLocation();
 
-  const noNavbarPaths = ['/dashboard', '/login']; 
+  const noNavbarPaths = ['/login']; 
 
   return (
     <>

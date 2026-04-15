@@ -107,13 +107,13 @@ const ProductList = () => {
         barcode: editFormData.barcode,
         price: parseFloat(editFormData.price),
         costPrice: parseFloat(editFormData.costPrice),
-        stock: parseFloat(editFormData.stock) || 0.0
+        stock: parseInt(editFormData.stock, 10) || 0
       };
 
       // Update in database
       const updatedProduct = await databases.updateDocument(
         import.meta.env.VITE_APPWRITE_DATABASEID,
-        import.meta.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
+        import.meta.env.VITE_APPWRITE_PRODUCTS_COLLECTIONID,
         productToEdit.$id,
         updateData
       );
