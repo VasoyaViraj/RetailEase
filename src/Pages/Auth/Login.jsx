@@ -19,7 +19,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/', { replace: true });
+      navigate('/customer/profile', { replace: true });
     } catch (err) {
       console.error('Login failed:', err);
       setError(err.message || 'Invalid email or password');
