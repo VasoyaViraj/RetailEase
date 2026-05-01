@@ -1,24 +1,49 @@
-import React from 'react'
-import { Link, useLocation } from 'react-router-dom';
-import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { useAuth } from '@/providers/AuthProvider';
 
 const Navbarr = () => {
-    const location = useLocation();
-    const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    const navLinks = [
-        { to: '/', label: 'Billing' },
-        { to: '/admin/addproduct', label: 'Add Product' },
-        { to: '/admin/productlist', label: 'Products' },
-        { to: '/admin/ledger', label: 'Ledger' },
-        { to: '/dashboard', label: 'Dashboard' },
-    ];
+  const { user, logout, loading, hasRole } = useAuth();
 
-    const isActive = (path) => location.pathname === path;
+  // ✅ get label from localStorage
+  const label = localStorage.getItem("label");
 
-    return(
+  // ✅ wait for auth
+  if (loading) return null;
+
+  // ❌ hide navbar if:
+  // - no user
+  // - label is empty
+  // - label is not cashier
+  if (!user || !label || label !== "cashier") return null;
+
+  // ✅ Role-based links
+  const navLinks = [
+    { to: '/', label: 'Billing', roles: ['cashier'] },
+    { to: '/admin/addproduct', label: 'Add Product', roles: ['admin'] },
+    { to: '/admin/productlist', label: 'Products', roles: ['admin'] },
+    { to: '/admin/ledger', label: 'Ledger', roles: ['admin'] },
+    { to: '/dashboard', label: 'Dashboard', roles: ['cashier', 'admin'] },
+  ];
+
+  // ✅ filter links
+  const filteredLinks = navLinks.filter(link =>
+    hasRole(...link.roles)
+  );
+
+  const isActive = (path) => location.pathname === path;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  return(
         <>  
           <div className='navDiv h-[80px] flex justify-center items-center w-full px-4'>
             <header className="flex-1 flex h-14 shrink-0 items-center px-6 md:px-8 bg-white border-b-4 border-black">

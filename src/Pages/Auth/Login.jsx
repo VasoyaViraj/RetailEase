@@ -12,19 +12,21 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
 
-    try {
-      await login(email, password);
-      navigate('/customer/profile', { replace: true });
-    } catch (err) {
-      console.error('Login failed:', err);
-      setError(err.message || 'Invalid email or password');
-    } finally {
-      setLoading(false);
+ const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    await login(email, password);
+
+    const roles = JSON.parse(localStorage.getItem("roles"));
+
+    // ✅ Redirect based on role
+    if (roles?.includes("cashier")) {
+      navigate("/");
+    } else if (roles?.includes("admin")) {
+      navigate("/admin");
+    } else {
+      navigate("/customer/profile");
     }
   };
 
